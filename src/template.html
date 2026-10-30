@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<title>Family Chronicle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: archive register — header + legend, full-width timeline band, then map and record card side by side (stacked on phones) */
+:root{
+  --bg:#eef1f0; --paper:#f9fbfa; --ink:#1d2a2e; --muted:#5b6a6e; --rule:#cfd8d7; --land:#c6d2cc; --land-ro:#aec4b9; --water:#e8eeee;
+  --sure:#2c7d4a; --plaus:#c46a12; --ctx:#2f64a8; --accent:#1f5d63; --bar:#c9d5d2; --bar-ink:#2a3a3e; --sel:#1f5d63;
+  --br0:#7a5fb5; --br1:#2b8a8a; --br2:#a8862a; --br3:#c0577a; --br4:#7d6450; --br5:#4a7ab0;
+  --br6:#7f8a33; --br7:#a8414a; --br8:#5f6f7a; --br9:#9a4f9a; --bauto-l:42%; --bmix:32%;
+  --f-display:"Alegreya",Georgia,"Times New Roman",serif;
+  --f-body:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121a1c; --paper:#182326; --ink:#e3ece9; --muted:#97a8a6; --rule:#2c3b3e; --land:#1f2c2f; --land-ro:#26393a; --water:#141e20;
+  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
+  --br0:#a99be0; --br1:#5fc0bd; --br2:#d9b54f; --br3:#e58aa8; --br4:#b89a80; --br5:#8fb3e0;
+  --br6:#b8c46a; --br7:#e0848b; --br8:#a3b3bd; --br9:#d08ad0; --bauto-l:70%; --bmix:38%}}
+:root[data-theme="dark"]{
+  --bg:#121a1c; --paper:#182326; --ink:#e3ece9; --muted:#97a8a6; --rule:#2c3b3e; --land:#1f2c2f; --land-ro:#26393a; --water:#141e20;
+  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
+  --br0:#a99be0; --br1:#5fc0bd; --br2:#d9b54f; --br3:#e58aa8; --br4:#b89a80; --br5:#8fb3e0;
+  --br6:#b8c46a; --br7:#e0848b; --br8:#a3b3bd; --br9:#d08ad0; --bauto-l:70%; --bmix:38%}
+/* branch colours: .bN sets --bc, consumed by bars, arcs and swatches */
+.b0{--bc:var(--br0)} .b1{--bc:var(--br1)} .b2{--bc:var(--br2)} .b3{--bc:var(--br3)} .b4{--bc:var(--br4)} .b5{--bc:var(--br5)}
+.b6{--bc:var(--br6)} .b7{--bc:var(--br7)} .b8{--bc:var(--br8)} .b9{--bc:var(--br9)} .bo{--bc:var(--muted)}
+/* branches past the 10th get generated .bN rules (see branchStyles in the script) */
+.sw[hidden]{display:none}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--bc,var(--bar));flex:none;vertical-align:baseline;margin-right:6px}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+h1{font:700 clamp(1.4rem,5vw,2.5rem)/1.1 var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.9rem}
+.sub b{font-family:var(--f-data);font-weight:500;color:var(--ink)}
+h2{font:700 1.1rem/1.2 var(--f-display);margin:0}
+.eyebrow{font:500 .75rem/1 var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 13px;font:500 .88rem var(--f-body);cursor:pointer;min-height:36px;touch-action:manipulation}
+.chip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.chip:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input[type=search]{font:inherit;font-size:.9rem;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:7px 9px;min-height:36px;touch-action:manipulation}
+input[type=search]{width:min(12rem,100%)}
+/* category glyphs: shape + colour */
+.g{width:11px;height:11px;flex:none;display:inline-block}
+.g.sure{background:var(--sure);border-radius:50%}
+.g.plausible{border:2px solid var(--plaus);transform:rotate(45deg);width:9px;height:9px;background:transparent}
+.g.context{background:var(--ctx);border-radius:2px}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:10px}
+#tl{min-height:200px}
+.tlhead{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;padding:12px 14px 8px}
+.hint{color:var(--muted);font-size:.85rem}
+.lower{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px}
+@media (max-width:820px){.lower{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){
+  .wrap{gap:10px}
+  .controls{gap:6px}
+  .tlhead{flex-direction:column;align-items:flex-start;gap:4px}
+  .hint{font-size:.8rem}
+  .card{padding:12px 14px}
+  .evlist li{grid-template-columns:4.2rem 14px minmax(0,1fr);gap:5px}
+  .foot{gap:10px}
+  .foot .panel{padding:12px 14px}
+}
+.mapbox{position:relative;padding:12px 14px}
+.globe-wrap{position:relative;width:100%;line-height:0}
+#globe-canvas{display:block;width:100%;height:auto}
+#map{position:absolute;top:0;left:0;width:100%;height:100%;cursor:grab}
+#map:active{cursor:grabbing}
+#map .pin{cursor:pointer;stroke:var(--paper);stroke-width:1.5}
+#map .pin.sure{fill:var(--sure)} #map .pin.plausible{fill:var(--plaus)} #map .pin.context{fill:var(--ctx)}
+#map .pin.on{stroke:var(--ink);stroke-width:2.5}
+#map .pl{fill:var(--ink);font:500 10.5px var(--f-body);pointer-events:none;paint-order:stroke;stroke:var(--paper);stroke-width:3px}
+#map .mig{fill:none;stroke:var(--bc,var(--muted));stroke-opacity:.6;stroke-width:1.3}
+#map .mig.on{stroke-opacity:1;stroke-width:2.6;stroke-dasharray:5 3}
+.abroad{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.card{padding:16px 18px;display:grid;gap:12px;align-content:start;min-width:0}
+.card h3{font:700 1.35rem/1.2 var(--f-display);margin:0;text-wrap:balance}
+.meta{font-family:var(--f-data);font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.evlist{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.evlist li{display:grid;grid-template-columns:5.6rem 14px minmax(0,1fr);gap:8px;align-items:start}
+.evlist .yr{font-family:var(--f-data);font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--muted);padding-top:2px}
+.evlist .g{margin-top:6px}
+.evlist .t{font-weight:500}
+.evlist .x{color:var(--muted);font-size:.9rem}
+.rel{display:flex;flex-wrap:wrap;gap:6px}
+.rel button{font:inherit;font-size:.88rem;border:1px solid var(--rule);background:transparent;color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;min-height:34px;touch-action:manipulation}
+a{color:var(--accent)}
+.empty{color:var(--muted)}
+.foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+.foot .panel{padding:16px 18px}
+.foot ul{margin:8px 0 0;padding-left:1.1rem;display:grid;gap:5px;font-size:.93rem}
+.foot dl{margin:8px 0 0;display:grid;gap:8px;font-size:.93rem}
+.foot dt{display:flex;gap:8px;align-items:center;font-weight:700}
+.foot dd{margin:0 0 0 19px;color:var(--muted)}
+/* vis-timeline theming */
+.vis-timeline{border:0!important;font-family:var(--f-body)!important;color:var(--ink)}
+.vis-panel.vis-center,.vis-panel.vis-left,.vis-panel.vis-top,.vis-panel.vis-bottom,.vis-panel.vis-right{border-color:var(--rule)!important}
+.vis-labelset .vis-label{color:var(--ink)!important;border-color:var(--rule)!important;font:700 .9rem var(--f-display)}
+.vis-labelset .vis-label .vis-inner{padding:6px 10px}
+.vis-foreground .vis-group{border-color:var(--rule)!important}
+.vis-time-axis .vis-text{color:var(--muted)!important;font-family:var(--f-data);font-size:.75rem}
+.vis-time-axis .vis-grid.vis-minor{border-color:var(--rule)!important;opacity:.5}
+.vis-time-axis .vis-grid.vis-major{border-color:var(--rule)!important}
+.vis-item{font-size:.78rem;border-radius:4px}
+.vis-item.life{--bt:color-mix(in srgb,var(--bc,var(--bar)) var(--bmix),var(--paper));background:var(--bt)!important;border-color:transparent!important;border-left:3px solid var(--bc,var(--bar))!important;color:var(--bar-ink)!important;height:18px;line-height:15px}
+.vis-item.life.est{background:repeating-linear-gradient(90deg,var(--bt) 0 6px,transparent 6px 9px)!important;border:1px dashed var(--bc,var(--bar))!important;border-left-width:3px!important}
+.vis-item.life.vis-selected{background:var(--sel)!important;color:var(--paper)!important}
+.vis-item.vis-point{border:0!important;background:transparent!important;color:var(--ink)!important}
+.vis-item .vis-dot{border-width:5px!important;border-radius:6px!important}
+.vis-item.sure .vis-dot{border-color:var(--sure)!important;background:var(--sure)!important}
+.vis-item.plausible .vis-dot{border:2px solid var(--plaus)!important;background:var(--paper)!important;border-radius:1px!important;transform:rotate(45deg);width:7px;height:7px}
+.vis-item.context .vis-dot{border-color:var(--ctx)!important;border-radius:1px!important}
+.vis-item.vis-range.histr{border-width:1px!important;color:var(--ink)!important;height:18px;line-height:15px}
+.vis-item.vis-range.histr.plausible{background:color-mix(in srgb,var(--plaus) 22%,transparent)!important;border:1px dashed var(--plaus)!important}
+.vis-item.vis-range.histr.context{background:color-mix(in srgb,var(--ctx) 18%,transparent)!important;border-color:var(--ctx)!important}
+.vis-item.vis-selected .vis-item-content{font-weight:700}
+.vis-current-time{background:var(--accent)!important}
+.vis-tooltip{background:var(--paper)!important;color:var(--ink)!important;border:1px solid var(--rule)!important;font-family:var(--f-body)!important;border-radius:6px!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Family Chronicle</h1>
+      <p class="sub" id="stats"></p>
+    </div>
+    <div class="controls" role="group" aria-label="Filters">
+      <button class="chip" id="c-sure" aria-pressed="true" data-cat="sure"><span class="g sure"></span>Sure</button>
+      <button class="chip" id="c-plaus" aria-pressed="true" data-cat="plausible"><span class="g plausible"></span>Plausible</button>
+      <button class="chip" id="c-ctx" aria-pressed="true" data-cat="context"><span class="g context"></span>Context</button>
+      <label class="hint" for="branch"><span class="sw" id="branch-sw" hidden></span>Branch</label>
+      <select id="branch"><option value="">All branches</option></select>
+      <input type="search" id="q" placeholder="Find a person…" aria-label="Find a person" list="names">
+      <datalist id="names"></datalist>
+    </div>
+  </header>
+
+  <section class="panel" aria-label="Timeline">
+    <div class="tlhead">
+      <h2>Timeline</h2>
+      <span class="hint" id="tl-hint">Drag/pinch to pan &amp; zoom · tap to open record</span>
+    </div>
+    <div id="tl"></div>
+  </section>
+
+  <div class="lower">
+    <section class="panel mapbox" aria-label="Map">
+      <div class="tlhead" style="padding:0 0 6px"><h2>Places</h2><span class="hint meta" id="span"></span></div>
+      <div class="globe-wrap">
+        <canvas id="globe-canvas"></canvas>
+        <svg id="map" role="img" aria-label="Spinning globe of family places" style="background:transparent"></svg>
+      </div>
+      <div class="abroad" id="abroad"></div>
+    </section>
+    <section class="panel card" id="card" aria-live="polite"></section>
+  </div>
+
+  <div class="foot">
+    <section class="panel">
+      <h2>How events are sorted</h2>
+      <dl>
+        <dt><span class="g sure"></span>Sure</dt><dd>A dated fact recorded in the tree: birth, death, marriage.</dd>
+        <dt><span class="g plausible"></span>Plausible</dt><dd>Estimated dates (from children, siblings or notes), or a historical event that very likely touched a named relative. Each one says what to check.</dd>
+        <dt><span class="g context"></span>Context</dt><dd>History of the places and times the family lived through, with no claimed personal link.</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>Things to fix in the tree</h2>
+      <ul id="checks"></ul>
+    </section>
+    <section class="panel">
+      <h2>Privacy</h2>
+      <p class="hint" style="margin:8px 0 0">Email addresses from the export are not included. People who may be living show their birth year only. This page is private until you share it.</p>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+<script>
+const DATA = /*DATA*/null;
+const P = DATA.people, PL = DATA.places, EV = DATA.events;
+const NOW = new Date().getFullYear();
+const SET = DATA.settings || {};
+const CAT_LABEL = {sure:'Sure', plausible:'Plausible', context:'Context'};
+// Branch list comes from the parser (data.json "branches"); fall back to the people's branches for older data files
+const BRANCHES = DATA.branches || (() => { const s = [...new Set(Object.values(P).map(p=>p.branch))].filter(b=>b!=='Other').sort();
+  return Object.values(P).some(p=>p.branch==='Other') ? [...s, 'Other'] : s; })();
+const PALETTE = 10; // --br0…--br9 in CSS
+// 'Other' is always grey; branches 0-9 use the palette; 10+ get a generated hue (golden-angle spacing)
+const bcls = b => b==='Other' ? 'bo' : (i => i < 0 ? '' : 'b'+i)(BRANCHES.indexOf(b));
+(function branchStyles(){
+  const n = BRANCHES.filter(b=>b!=='Other').length; if (n <= PALETTE) return;
+  let css = ''; for (let i = PALETTE; i < n; i++) css += `.b${i}{--bc:hsl(${Math.round((i*137.508+20)%360)} 42% var(--bauto-l))}
+`;
+  const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+})();
+const swatch = b => `<span class="sw ${bcls(b)}" aria-hidden="true"></span>`;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const label = p => p.name + (!p.surname && p.married ? ` (${p.married} by marriage)` : '');
+const toDate = d => new Date(d.y, (d.m||1)-1, d.d||1);
+const fmt = d => !d ? '' : d.prec==='est' ? `c. ${d.y}` : d.prec==='day' ? `${d.d}.${String(d.m).padStart(2,'0')}.${d.y}` : d.prec==='month' ? `${String(d.m).padStart(2,'0')}.${d.y}` : `${d.y}`;
+EV.forEach((e,i) => e.id = 'e'+i);
+
+const state = { cats:new Set(['sure','plausible','context']), branch:'', sel:null, win:[0, NOW] };
+let stored = {}; try { stored = JSON.parse(localStorage.getItem('ftc') || '{}'); } catch(e) {}
+if (stored.cats) state.cats = new Set(stored.cats); if (stored.branch) state.branch = stored.branch;
+const save = () => { try { localStorage.setItem('ftc', JSON.stringify({cats:[...state.cats], branch:state.branch})); } catch(e) {} };
+
+/* ---------- header ---------- */
+const people = Object.values(P);
+const yrs = people.map(p=>p.by).filter(Boolean);
+document.getElementById('stats').innerHTML = `<b>${people.length}</b> people · <b>${BRANCHES.filter(b=>b!=='Other').length}</b> branches · <b>${Math.min(...yrs)}–${NOW}</b> · <b>${EV.length}</b> events`;
+const sel = document.getElementById('branch');
+BRANCHES.forEach(b => sel.add(new Option(b, b))); sel.value = state.branch;
+const branchSw = document.getElementById('branch-sw');
+const syncBranchSw = () => { branchSw.className = 'sw ' + bcls(state.branch); branchSw.hidden = !state.branch; };
+syncBranchSw();
+document.getElementById('names').innerHTML = people.filter(p=>p.given && p.given!=='?').map(p=>`<option value="${esc(label(p))}">`).join('');
+document.getElementById('checks').innerHTML = DATA.checks.map(c=>`<li>${esc(c)}</li>`).join('');
+document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', state.cats.has(b.dataset.cat)));
+
+/* ---------- timeline ---------- */
+const groups = new vis.DataSet([{id:'History', content:esc(SET.historyLabel || 'History'), order:0}, ...BRANCHES.map((b,i)=>{ const el=document.createElement('span'); el.innerHTML=swatch(b)+esc(b); return {id:b, content:el, order:i+1}; })]);
+const items = new vis.DataSet();
+function buildItems(){
+  const out = [];
+  for (const p of people){
+    if (!p.by) continue;
+    if (state.branch && p.branch !== state.branch) continue;
+    let end = p.dy || (p.dead ? Math.min(p.by+70, NOW) : NOW);
+    const est = p.byEst || (p.dead && !p.dy);
+    out.push({id:'p'+p.id, group:p.branch, type:'range', start:new Date(p.by,0,1), end:new Date(end,11,31),
+      content:esc(p.name + (p.living ? '' : p.dy ? '' : p.dead ? ' †' : '')), className:`life ${bcls(p.branch)}`+(est?' est':''),
+      title:esc(`${label(p)} · ${p.byEst?'c. ':''}${p.by}–${p.dy || (p.dead?'?':'')}`)});
+  }
+  for (const e of EV){
+    if (!state.cats.has(e.cat)) continue;
+    if (e.kind==='family'){
+      if (e.type==='birt' || e.type==='deat') continue; // shown by lifespan bars; still on map + card
+      const p = P[e.person]; if (state.branch && p.branch!==state.branch) continue;
+      out.push({id:e.id, group:p.branch, type:'point', start:toDate(e.date), content:'', className:e.cat, title:esc(`${fmt(e.date)} · ${e.title}`)});
+    } else {
+      const r = e.end && e.end > e.date.y;
+      out.push({id:e.id, group:'History', type:r?'range':'point', start:new Date(e.date.y,0,1), end:r?new Date(e.end,11,31):undefined,
+        content:esc(e.title), className:e.cat+(r?' histr':''), title:esc(`${e.date.y}${r?'–'+e.end:''} · ${e.title}`)});
+    }
+  }
+  items.clear(); items.add(out);
+  groups.forEach(g => groups.update({id:g.id, visible: !state.branch || g.id===state.branch || g.id==='History'}));
+}
+buildItems();
+// first year shown: config timelineStart, else the decade before the earliest birth
+const T0 = SET.timelineStart || Math.floor((Math.min(...yrs, NOW) - 5) / 10) * 10;
+state.win[0] = T0;
+const tl = new vis.Timeline(document.getElementById('tl'), items, groups, {
+  start:new Date(T0,0,1), end:new Date(NOW,11,31), min:new Date(T0-30,0,1), max:new Date(NOW+5,0,1),
+  zoomMin:1000*60*60*24*365*3, stack:true, maxHeight:560, groupOrder:'order', orientation:{axis:'top'},
+  margin:{item:{horizontal:2, vertical:4}}, tooltip:{followMouse:true}, showCurrentTime:false, selectable:true,
+});
+tl.on('rangechanged', ({start,end}) => { state.win=[start.getFullYear(), end.getFullYear()]; drawPins(); });
+tl.on('select', ({items:s}) => { if (!s.length) return; const id=s[0]; id[0]==='p' ? showPerson(id.slice(1)) : showEvent(id); });
+
+/* ---------- globe ---------- */
+const svg = d3.select('#map'), W = 480, H = 480;
+svg.attr('viewBox', `0 0 ${W} ${H}`);
+const toGJ = c => ({type:'Feature', geometry:{type:'MultiPolygon', coordinates:c.polys}});
+
+// Orthographic projection centred on Romania [25°E, 46°N]
+const proj = d3.geoOrthographic().scale(220).translate([W/2, H/2]).clipAngle(90).rotate([-25, -46, 0]);
+// SVG path generator for pins/arcs only (lightweight — no large topologies)
+const path = d3.geoPath(proj);
+
+/* ---- Canvas setup: background geo rendered here for performance ---- */
+const canvas = document.getElementById('globe-canvas');
+const ctx = canvas.getContext('2d');
+
+// The canvas is sized to actual rendered pixels (matching the SVG on screen).
+// We then apply a ctx.scale so drawing coordinates match the SVG viewBox (0–W, 0–H).
+// This means proj([lon,lat]) returns the same numbers for both canvas and SVG.
+let _canvasScale = 1; // CSS px per viewBox unit
+function resizeCanvas(){
+  // canvas drives layout; read its rendered width (it has width:100% via CSS)
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return; // not yet laid out
+  const dpr  = window.devicePixelRatio || 1;
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.width  * dpr; // square: H == W
+  // _canvasScale converts viewBox units → CSS px (e.g. if panel is 400px wide, scale = 400/480)
+  _canvasScale = rect.width / W;
+  paintCanvas();
+}
+new ResizeObserver(resizeCanvas).observe(canvas);
+// Initial size — deferred so layout is complete and getBoundingClientRect() has real dimensions
+requestAnimationFrame(resizeCanvas);
+
+// Canvas path generator — same projection as SVG (proj returns viewBox coords 0–W/0–H)
+const canvasPath = d3.geoPath(proj, ctx);
+
+// Resolve CSS variable colours (canvas can't use var()); cached and refreshed on theme change
+let _colours = {};
+function refreshColours(){
+  const s = getComputedStyle(document.documentElement);
+  const g = n => s.getPropertyValue(n).trim();
+  _colours = { water:g('--water'), land:g('--land'), landRo:g('--land-ro'), rule:g('--rule'), muted:g('--muted') };
+}
+refreshColours();
+new MutationObserver(refreshColours).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshColours);
+
+// GeoJSON layers stored here; populated progressively
+const _geoLayers = { land: null, borders: null, ro: null, nb: null };
+
+// Detail level 0 = globe view, 1 = regional (scale≥400), 2 = local (scale≥800)
+let _detailLevel = 0;
+function zoomLevel(scale){ return scale >= 800 ? 2 : scale >= 400 ? 1 : 0; }
+
+// Render everything onto the canvas — called every frame
+function paintCanvas(){
+  const dpr  = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  // Transform: viewBox units → device pixels
+  // ctx draws at (x,y) in viewBox coords; we need device px = x * _canvasScale * dpr
+  ctx.scale(_canvasScale * dpr, _canvasScale * dpr);
+
+  const { water, land, landRo, rule, muted } = _colours;
+
+  // Ocean sphere
+  ctx.beginPath(); canvasPath({type:'Sphere'});
+  ctx.fillStyle = water; ctx.fill();
+
+  // Land fill (world atlas)
+  if (_geoLayers.land){
+    ctx.beginPath(); canvasPath(_geoLayers.land);
+    ctx.fillStyle = land; ctx.fill();
+  }
+
+  // Neighbour countries (DATA.geo, non-Romania)
+  if (_geoLayers.nb){
+    _geoLayers.nb.forEach(f => {
+      ctx.beginPath(); canvasPath(f);
+      ctx.fillStyle = land;
+      ctx.strokeStyle = rule; ctx.lineWidth = 0.4; ctx.globalAlpha = 1;
+      ctx.fill(); ctx.stroke();
+    });
+  }
+
+  // Romania highlight
+  if (_geoLayers.ro){
+    ctx.beginPath(); canvasPath(_geoLayers.ro);
+    ctx.fillStyle = landRo;
+    ctx.strokeStyle = muted; ctx.lineWidth = 0.5;
+    ctx.fill(); ctx.stroke();
+  }
+
+  // Graticule
+  const gratStep = _detailLevel >= 1 ? 5 : 10;
+  ctx.beginPath(); canvasPath(d3.geoGraticule().step([gratStep, gratStep])());
+  ctx.strokeStyle = rule; ctx.lineWidth = 0.4; ctx.globalAlpha = 0.6; ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // L2 country borders
+  if (_detailLevel >= 2 && _geoLayers.borders){
+    ctx.beginPath(); canvasPath(_geoLayers.borders);
+    ctx.strokeStyle = muted; ctx.lineWidth = 0.5; ctx.globalAlpha = 0.5; ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+const _tileCache = {};
+// Load a TopoJSON tile once; call onload immediately if already cached.
+function loadTile(url, key, onload){
+  if (_tileCache[key] && _tileCache[key] !== 'loading'){ onload(_tileCache[key]); return; }
+  if (_tileCache[key] === 'loading') return;
+  _tileCache[key] = 'loading';
+  d3.json(url).then(world => { _tileCache[key] = world; onload(world); });
+}
+
+// Pre-build DATA.geo GeoJSON for canvas
+_geoLayers.ro = toGJ(DATA.geo.find(c => c.name === (SET.homeCountry || 'Romania')));
+_geoLayers.nb = DATA.geo.filter(c => c.name !== (SET.homeCountry || 'Romania')).map(toGJ);
+
+// Initial 110m land
+loadTile('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json', '110m', world => {
+  _geoLayers.land = topojson.feature(world, world.objects.land);
+  paintCanvas();
+});
+
+function applyDetailLevel(level){
+  if (level === _detailLevel) return;
+  _detailLevel = level;
+
+  // L1+: sharper 50m land; L0: back to 110m
+  if (level >= 1){
+    loadTile('https://cdn.jsdelivr.net/npm/world-atlas@2/land-50m.json', '50m', world => {
+      _geoLayers.land = topojson.feature(world, world.objects.land);
+      paintCanvas();
+    });
+  } else {
+    loadTile('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json', '110m', world => {
+      _geoLayers.land = topojson.feature(world, world.objects.land);
+      paintCanvas();
+    });
+  }
+
+  // L2: load fine country borders
+  if (level >= 2){
+    loadTile('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json', '10m', world => {
+      _geoLayers.borders = topojson.mesh(world, world.objects.countries, (a,b) => a !== b);
+      paintCanvas();
+    });
+  }
+  // border visibility is controlled inside paintCanvas via _detailLevel
+}
+
+// All places are on the globe; visibility handled per-frame
+const inMap = () => true;
+const migG = svg.append('g'), pinG = svg.append('g'), lblG = svg.append('g');
+
+// Helper: is a [lon,lat] on the visible hemisphere?
+const onFront = ([lon, lat]) => d3.geoDistance([lon, lat], proj.invert([W/2, H/2])) < Math.PI / 2;
+
+function personPath(p){
+  const ev = EV.filter(e => e.kind==='family' && (e.person===p.id || e.partner===p.id) && e.place).sort((a,b)=>a.date.y-b.date.y);
+  const seq = []; ev.forEach(e => { if (seq[seq.length-1]!==e.place) seq.push(e.place); });
+  return seq;
+}
+
+// Repaints canvas background after any projection change
+function redrawGeo(){ paintCanvas(); }
+
+function drawMig(){
+  const segs = [];
+  for (const p of people){
+    if (state.branch && p.branch!==state.branch) continue;
+    const s = personPath(p);
+    for (let i=1;i<s.length;i++) segs.push({a:s[i-1], b:s[i], pid:p.id});
+  }
+  // Use geodesic lines for migration arcs on the globe
+  migG.selectAll('path').data(segs).join('path')
+    .attr('class', d=>`mig ${bcls(P[d.pid].branch)}`+(d.pid===state.sel?' on':''))
+    .attr('d', d => {
+      const a = PL[d.a], b = PL[d.b];
+      if (!a || !b) return '';
+      return path({type:'LineString', coordinates:[[a.lon,a.lat],[b.lon,b.lat]]});
+    });
+}
+
+const rank = {sure:3, plausible:2, context:1};
+function visibleEvents(){
+  return EV.filter(e => state.cats.has(e.cat) && e.place && (!state.branch || e.kind==='history' || P[e.person].branch===state.branch)
+    && (e.end || e.date.y) >= state.win[0] && e.date.y <= state.win[1]);
+}
+function drawPins(){
+  document.getElementById('span').textContent = `${state.win[0]}–${state.win[1]}`;
+  const byPlace = d3.group(visibleEvents(), e=>e.place);
+  const selPlaces = state.sel ? new Set(personPath(P[state.sel])) : new Set();
+  const rows = [...byPlace].map(([k,evs]) => ({k, evs, cat: evs.reduce((a,e)=>rank[e.cat]>rank[a]?e.cat:a,'context')}));
+  const r = d => 4 + Math.sqrt(d.evs.length)*2.4;
+  pinG.selectAll('circle').data(rows, d=>d.k).join('circle')
+    .attr('class', d=>`pin ${d.cat}${selPlaces.has(d.k)?' on':''}`)
+    .attr('cx', d=>proj([PL[d.k].lon,PL[d.k].lat])[0])
+    .attr('cy', d=>proj([PL[d.k].lon,PL[d.k].lat])[1])
+    .attr('r', r)
+    .attr('display', d => onFront([PL[d.k].lon, PL[d.k].lat]) ? null : 'none')
+    .attr('tabindex',0).attr('role','button').attr('aria-label', d=>`${PL[d.k].label}, ${d.evs.length} events`)
+    .on('click', (ev,d)=>{ stopSpin(); showPlace(d.k); }).on('keydown', (ev,d)=>{ if(ev.key==='Enter'){ stopSpin(); showPlace(d.k); } })
+    .selectAll('title').data(d=>[d]).join('title').text(d=>`${PL[d.k].label} — ${d.evs.length} event${d.evs.length>1?'s':''}`);
+  // Candidate labels: at L0 only busy/selected; at L1+ all places, sorted by importance
+  const candidates = (_detailLevel >= 1 ? rows : rows.filter(d=>d.evs.length>=3 || selPlaces.has(d.k)))
+    .filter(d => onFront([PL[d.k].lon, PL[d.k].lat]))
+    .sort((a,b) => (selPlaces.has(b.k)?1000:0)+b.evs.length - ((selPlaces.has(a.k)?1000:0)+a.evs.length));
+  // Greedy collision filter — suppress labels whose screen anchor is within MIN_GAP px of an already-placed one
+  const MIN_GAP = 55;
+  const placed = [];
+  const big = candidates.filter(d => {
+    const [cx, cy] = proj([PL[d.k].lon, PL[d.k].lat]);
+    const lx = cx + r(d) + 3, ly = cy + 3.5;
+    const hit = placed.some(([px,py]) => Math.hypot(lx-px, ly-py) < MIN_GAP);
+    if (!hit) placed.push([lx, ly]);
+    return !hit;
+  });
+  // Store keys that survived collision for use by redrawPins()
+  _visibleLabelKeys = new Set(big.map(d=>d.k));
+  lblG.selectAll('text').data(big, d=>d.k).join('text').attr('class','pl')
+    .attr('x', d=>proj([PL[d.k].lon,PL[d.k].lat])[0] + r(d) + 3)
+    .attr('y', d=>proj([PL[d.k].lon,PL[d.k].lat])[1] + 3.5)
+    .attr('display', null)
+    .text(d=>PL[d.k].label.split(/[,(]/)[0].trim());
+  // No "abroad" chips needed — everything is on the globe
+  document.getElementById('abroad').innerHTML = '';
+  drawMig();
+}
+
+/* ---------- spin ---------- */
+let _visibleLabelKeys = new Set(); // keys that passed the last collision filter
+let spinning = true, spinResumeTimer = null;
+let _lastElapsed = 0;
+
+function stopSpin(){ spinning = false; clearTimeout(spinResumeTimer); spinResumeTimer = setTimeout(() => { spinning = true; }, 4000); }
+
+// Shared helper: reposition all pins/labels/arcs after any projection change
+function redrawPins(){
+  pinG.selectAll('circle')
+    .attr('cx', d=>proj([PL[d.k].lon,PL[d.k].lat])[0])
+    .attr('cy', d=>proj([PL[d.k].lon,PL[d.k].lat])[1])
+    .attr('display', d => onFront([PL[d.k].lon, PL[d.k].lat]) ? null : 'none');
+  lblG.selectAll('text')
+    .attr('x', d=>proj([PL[d.k].lon,PL[d.k].lat])[0] + (4 + Math.sqrt(d.evs.length)*2.4) + 3)
+    .attr('y', d=>proj([PL[d.k].lon,PL[d.k].lat])[1] + 3.5)
+    .attr('display', d => (_visibleLabelKeys.has(d.k) && onFront([PL[d.k].lon, PL[d.k].lat])) ? null : 'none');
+  migG.selectAll('path').attr('d', d => {
+    const a = PL[d.a], b = PL[d.b];
+    if (!a || !b) return '';
+    return path({type:'LineString', coordinates:[[a.lon,a.lat],[b.lon,b.lat]]});
+  });
+}
+
+const spinner = d3.timer(elapsed => {
+  if (!spinning) { _lastElapsed = elapsed; return; }
+  const delta = elapsed - _lastElapsed;
+  _lastElapsed = elapsed;
+  const r = proj.rotate(); proj.rotate([r[0] + delta * 0.008, r[1], r[2]]);
+  redrawGeo();
+  redrawPins();
+});
+
+/* ---------- drag-to-rotate ---------- */
+let dragStart = null;
+svg.call(d3.drag()
+  .on('start', function(event){
+    stopSpin();
+    dragStart = { rotate: proj.rotate().slice(), x: event.x, y: event.y };
+  })
+  .on('drag', function(event){
+    if (!dragStart) return;
+    const dx = event.x - dragStart.x, dy = event.y - dragStart.y;
+    const sensitivity = 90 / proj.scale();
+    proj.rotate([dragStart.rotate[0] + dx * sensitivity, dragStart.rotate[1] - dy * sensitivity, dragStart.rotate[2]]);
+    redrawGeo();
+    redrawPins();
+  })
+  .on('end', function(){ dragStart = null; })
+);
+
+/* ---------- scroll-to-zoom ---------- */
+const SCALE_MIN = 80, SCALE_MAX = 8000;
+svg.on('wheel', function(event){
+  event.preventDefault();
+  stopSpin();
+  const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const newScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, proj.scale() * factor));
+  proj.scale(newScale);
+  applyDetailLevel(zoomLevel(newScale));
+  redrawGeo();
+  drawPins(); // full rebind so label visibility threshold updates
+}, { passive: false });
+
+/* ---------- record card ---------- */
+const card = document.getElementById('card');
+function evRow(e){
+  const pl = e.place ? ` · ${esc(PL[e.place]?.label || e.place)}` : '';
+  const yr = e.kind==='history' ? (e.end && e.end>e.date.y ? `${e.date.y}–${String(e.end).slice(2)}` : e.date.y) : fmt(e.date);
+  return `<li><span class="yr">${yr}</span><span class="g ${e.cat}" title="${CAT_LABEL[e.cat]}"></span><div>
+    <div class="t">${esc(e.title)}<span class="x">${pl}</span></div>${e.text?`<div class="x">${esc(e.text)}</div>`:''}
+    ${e.link?`<div class="x"><a href="${e.link}" target="_blank" rel="noopener">Read more ↗</a></div>`:''}</div></li>`;
+}
+const relBtn = ids => ids.filter(Boolean).map(id => `<button data-pid="${id}">${esc(label(P[id]))}</button>`).join('');
+function famOf(p){
+  const fams = {}; EVfams(); const F = window._F;
+  const parents = p.famc.flatMap(f => [F[f]?.husb, F[f]?.wife]);
+  const sibs = p.famc.flatMap(f => F[f]?.chil || []).filter(c=>c!==p.id);
+  const spouses = p.fams.map(f => F[f]?.husb===p.id ? F[f]?.wife : F[f]?.husb);
+  const kids = p.fams.flatMap(f => F[f]?.chil || []);
+  return {parents, sibs, spouses, kids};
+}
+function EVfams(){ if (window._F) return; const F={};
+  for (const p of people){ for (const f of p.fams){ F[f]=F[f]||{chil:[]}; if (p.sex==='M') F[f].husb=p.id; else F[f].wife=p.id; }
+    for (const f of p.famc){ F[f]=F[f]||{chil:[]}; F[f].chil.push(p.id); } }
+  window._F=F; }
+function showPerson(id){
+  const p = P[id]; state.sel = id;
+  const own = EV.filter(e => e.kind==='family' && (e.person===id || e.partner===id));
+  const hist = EV.filter(e => e.kind==='history' && (e.people||[]).includes(id));
+  const life = (p.by||0) && EV.filter(e => e.kind==='history' && e.cat==='context' && (e.end||e.date.y) >= p.by && e.date.y <= (p.dy||NOW) && !(e.people||[]).includes(id)).length;
+  const evs = [...own, ...hist].filter(e=>state.cats.has(e.cat)).sort((a,b)=>a.date.y-b.date.y);
+  const f = famOf(p);
+  const sec = (t, ids) => ids.filter(Boolean).length ? `<div><div class="eyebrow">${t}</div><div class="rel" style="margin-top:5px">${relBtn(ids)}</div></div>` : '';
+  card.innerHTML = `<div><div class="eyebrow">${swatch(p.branch)}${esc(p.branch)} branch</div><h3>${esc(label(p))}</h3>
+    <div class="meta">${p.by ? (p.byEst?'c. ':'')+p.by : '?'} – ${p.dy || (p.dead ? '?' : '')}${p.living?' · may be living':''}</div></div>
+    ${evs.length ? `<ul class="evlist">${evs.map(evRow).join('')}</ul>` : `<p class="empty">No events with a date or place yet.</p>`}
+    ${p.notes.length ? `<div><div class="eyebrow">Notes from the tree</div><p class="x" style="margin:4px 0 0">${p.notes.map(esc).join('<br>')}</p></div>`:''}
+    ${life ? `<p class="hint" style="margin:0">${life} context events fall within this lifetime. They show on the Romania row of the timeline.</p>`:''}
+    ${sec('Parents', f.parents)}${sec('Spouses', f.spouses)}${sec('Children', f.kids)}${sec('Siblings', f.sibs)}`;
+  card.querySelectorAll('[data-pid]').forEach(b => b.onclick = () => { showPerson(b.dataset.pid); focusPerson(b.dataset.pid); });
+  tl.setSelection(['p'+id]); drawPins();
+}
+function focusPerson(id){ if (items.get('p'+id)) tl.focus('p'+id, {animation:false}); }
+function showEvent(id){
+  const e = EV.find(x=>x.id===id);
+  if (e.kind==='family') return showPerson(e.person);
+  state.sel = null;
+  const who = (e.people||[]).map(pid=>`<button data-pid="${pid}">${esc(label(P[pid]))}</button>`).join('');
+  card.innerHTML = `<div><div class="eyebrow">${CAT_LABEL[e.cat]} · history</div><h3>${esc(e.title)}</h3>
+    <div class="meta">${e.date.y}${e.end?'–'+e.end:''}${e.place?' · '+esc(PL[e.place].label):''}</div></div>
+    <p style="margin:0">${esc(e.text)}</p>${e.link?`<a href="${e.link}" target="_blank" rel="noopener">Read more ↗</a>`:''}
+    ${who?`<div><div class="eyebrow">Relatives this may concern</div><div class="rel" style="margin-top:5px">${who}</div></div>`:''}`;
+  card.querySelectorAll('[data-pid]').forEach(b => b.onclick = () => { showPerson(b.dataset.pid); focusPerson(b.dataset.pid); });
+  drawPins();
+}
+function showPlace(k){
+  const evs = visibleEvents().filter(e=>e.place===k).sort((a,b)=>a.date.y-b.date.y);
+  const pl = PL[k];
+  card.innerHTML = `<div><div class="eyebrow">Place · ${state.win[0]}–${state.win[1]}</div><h3>${esc(pl.label)}</h3>
+    <div class="meta">${pl.lat.toFixed(2)}° N, ${pl.lon.toFixed(2)}° E${pl.approx?' · approximate location':''}</div></div>
+    <ul class="evlist">${evs.map(e => evRow(e).replace('<div class="t">', `<div class="t" ${e.person?`data-pid="${e.person}" style="cursor:pointer"`:''}>`)).join('')}</ul>`;
+  card.querySelectorAll('[data-pid]').forEach(b => b.onclick = () => { showPerson(b.dataset.pid); focusPerson(b.dataset.pid); });
+}
+
+/* ---------- controls ---------- */
+document.querySelectorAll('.chip[data-cat]').forEach(b => b.onclick = () => {
+  const c=b.dataset.cat; state.cats.has(c)?state.cats.delete(c):state.cats.add(c);
+  b.setAttribute('aria-pressed', state.cats.has(c)); save(); buildItems(); drawPins(); });
+sel.onchange = () => { state.branch = sel.value; syncBranchSw(); save(); buildItems(); drawPins(); };
+document.getElementById('q').addEventListener('change', ev => {
+  const v = ev.target.value.trim().toLowerCase(); if (!v) return;
+  const p = people.find(p => label(p).toLowerCase()===v) || people.find(p => label(p).toLowerCase().includes(v));
+  if (p){ if (state.branch && p.branch!==state.branch){ state.branch=''; sel.value=''; syncBranchSw(); buildItems(); } showPerson(p.id); focusPerson(p.id); }
+});
+
+drawPins();
+// opening event: config startEvent (title prefix), else the first plausible history event, else the first event
+const first = (SET.startEvent && EV.find(e=>e.title.startsWith(SET.startEvent))) || EV.find(e=>e.kind==='history' && e.cat==='plausible') || EV[0];
+if (first) showEvent(first.id);
+</script>

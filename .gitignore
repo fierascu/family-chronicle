@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+
+# Family data: names, dates and places of living people. Keep it out of the repo.
+data/
+*.ged
+.idea/
+
+# Demo data is fictional and committed
+!demo/
+!demo/dummy.ged

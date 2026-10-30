@@ -1,0 +1,28 @@
+{
+ "settings": {
+  "historyLabel": "Romania",
+  "homeCountry": "Romania",
+  "startEvent": "WWII"
+ },
+ "places": {},
+ "placeRules": [],
+ "branches": {},
+ "noteEvents": [
+  {"person": "I10", "year": 1985, "place": "Timișoara, Timiș, Romania", "title": "Moved to Timișoara: Dan Marin",
+   "text": "From tree notes; year estimated."}
+ ],
+ "history": [
+  {"cat": "plausible", "start": 1941, "end": 1945, "place": null, "title": "WWII: young men of the 1920s drafted",
+   "text": "Vasile Popescu died in October 1944 and Gavril Marin (b. 1920) was of military age. Check military service records.",
+   "link": "https://en.wikipedia.org/wiki/Romania_in_World_War_II", "people": ["I5", "I7"]},
+  {"cat": "context", "start": 1918, "end": null, "place": null, "title": "Great Union", "text": "1 December 1918.",
+   "link": "https://en.wikipedia.org/wiki/Union_of_Transylvania_with_Romania"},
+  {"cat": "context", "start": 1947, "end": null, "place": null, "title": "Monarchy abolished", "text": "30 December 1947.",
+   "link": "https://en.wikipedia.org/wiki/Socialist_Republic_of_Romania"},
+  {"cat": "context", "start": 1989, "end": null, "place": "Timișoara, Timiș, Romania", "title": "Revolution begins in Timișoara",
+   "text": "16–22 December 1989.", "link": "https://en.wikipedia.org/wiki/Romanian_revolution"},
+  {"cat": "context", "start": 2007, "end": null, "place": null, "title": "Romania joins the EU", "text": "1 January 2007.",
+   "link": "https://en.wikipedia.org/wiki/Romania_in_the_European_Union"}
+ ],
+ "placeNotes": []
+}

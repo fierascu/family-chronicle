@@ -1,0 +1,17 @@
+{
+  "name": "family-chronicle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Linked timeline and map built from a GEDCOM family tree, with historical context events.",
+  "scripts": {
+    "map": "node scripts/extract_map.js",
+    "parse": "python scripts/parse_gedcom.py",
+    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && npm run map && npm run parse && python scripts/build.py",
+    "parse:demo": "python scripts/parse_gedcom.py demo/dummy.ged",
+    "build:demo": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && npm run map && npm run parse:demo && python scripts/build.py"
+  },
+  "devDependencies": {
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
+  }
+}

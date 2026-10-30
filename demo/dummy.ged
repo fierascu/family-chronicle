@@ -1,0 +1,166 @@
+0 HEAD
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+1 SOUR DEMO
+2 NAME Family Chronicle demo data
+1 FILE Fictional demo data: 2 families, 10 people. Put your own export at data/tree.ged to replace it.
+0 @I1@ INDI
+1 NAME Ion /Popescu/
+2 GIVN Ion
+2 SURN Popescu
+1 SEX M
+1 BIRT
+2 DATE 12 FEB 1898
+2 PLAC Valea Verde, Gorj, Romania
+3 MAP
+4 LATI N45.12
+4 LONG E23.41
+1 DEAT
+2 DATE 3 NOV 1965
+2 PLAC Târgu Jiu, Gorj, Romania
+3 MAP
+4 LATI N45.04
+4 LONG E23.27
+2 CAUS Pneumonia
+1 OCCU Farmer
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME Maria /Ionescu/
+2 GIVN Maria
+2 SURN Ionescu
+2 _MARNM Popescu
+1 SEX F
+1 BIRT
+2 DATE 1902
+2 PLAC Valea Verde, Gorj, Romania
+1 DEAT
+2 DATE 14 MAR 1980
+2 PLAC Valea Verde, Gorj, Romania
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Nicolae /Popescu/
+2 GIVN Nicolae
+2 SURN Popescu
+1 SEX M
+1 BIRT
+2 DATE 6 DEC 1922
+2 PLAC Valea Verde, Gorj, Romania
+1 DEAT
+2 DATE 22 AUG 1990
+2 PLAC Craiova, Dolj, Romania
+3 MAP
+4 LATI N44.32
+4 LONG E23.80
+1 OCCU Railway mechanic
+1 NOTE Worked at the Craiova railway depot after the war.
+1 FAMC @F1@
+0 @I4@ INDI
+1 NAME Elena /Popescu/
+2 GIVN Elena
+2 SURN Popescu
+2 _MARNM Marin
+1 SEX F
+1 BIRT
+2 DATE 9 MAY 1925
+2 PLAC Valea Verde, Gorj, Romania
+1 DEAT
+2 DATE 1 JAN 2008
+2 PLAC Iași, Romania
+3 MAP
+4 LATI N47.16
+4 LONG E27.59
+1 FAMS @F2@
+1 FAMC @F1@
+0 @I5@ INDI
+1 NAME Vasile /Popescu/
+2 GIVN Vasile
+2 SURN Popescu
+1 SEX M
+1 BIRT
+2 PLAC Valea Verde, Gorj, Romania
+1 DEAT
+2 DATE OCT 1944
+2 CAUS Killed in action
+1 FAMC @F1@
+0 @I6@ INDI
+1 NAME Ana /Popescu/
+2 GIVN Ana
+2 SURN Popescu
+1 SEX F
+1 BIRT
+2 DATE 30 JUN 1931
+2 PLAC Valea Verde, Gorj, Romania
+1 DEAT
+2 DATE 8 SEP 2015
+2 PLAC Craiova, Dolj, Romania
+1 FAMC @F1@
+0 @I7@ INDI
+1 NAME Gavril /Marin/
+2 GIVN Gavril
+2 SURN Marin
+1 SEX M
+1 BIRT
+2 DATE 25 JAN 1920
+2 PLAC Iași, Romania
+1 DEAT
+2 DATE 11 JUL 1995
+2 PLAC Iași, Romania
+1 EDUC Agronomic Institute, Iași
+1 FAMS @F2@
+0 @I8@ INDI
+1 NAME Radu /Marin/
+2 GIVN Radu
+2 SURN Marin
+1 SEX M
+1 BIRT
+2 DATE 20 SEP 1948
+2 PLAC Iași, Romania
+1 DEAT
+2 DATE 5 FEB 2012
+2 PLAC Timișoara, Timiș, Romania
+3 MAP
+4 LATI N45.75
+4 LONG E21.23
+1 FAMC @F2@
+0 @I9@ INDI
+1 NAME Corina /Marin/
+2 GIVN Corina
+2 SURN Marin
+1 SEX F
+1 BIRT
+2 DATE 3 JUN 1952
+2 PLAC Iași, Romania
+1 FAMC @F2@
+0 @I10@ INDI
+1 NAME Dan /Marin/
+2 GIVN Dan
+2 SURN Marin
+1 SEX M
+1 BIRT
+2 DATE 14 OCT 1960
+2 PLAC Iași, Romania
+1 OCCU Engineer
+1 NOTE Moved to Timișoara for work in the 1980s.
+1 FAMC @F2@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+1 CHIL @I4@
+1 CHIL @I5@
+1 CHIL @I6@
+1 MARR
+2 DATE 4 OCT 1921
+2 PLAC Valea Verde, Gorj, Romania
+0 @F2@ FAM
+1 HUSB @I7@
+1 WIFE @I4@
+1 CHIL @I8@
+1 CHIL @I9@
+1 CHIL @I10@
+1 MARR
+2 DATE 12 APR 1947
+2 PLAC Iași, Romania
+0 TRLR
