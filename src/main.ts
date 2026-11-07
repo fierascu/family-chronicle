@@ -46,7 +46,7 @@ const living = {
   initials: 'People who may be living are shown by their initials, with their birth year only: no places, notes or exact marriage dates.',
   hidden: 'People who may be living are shown as "Living person", with their birth year only: no places, notes or exact marriage dates.',
   full: 'People who may be living are shown by name, with their birth year only. Share this page only behind a password.',
-}[SET.livingPeople ?? 'initials'];
+}[SET.livingPeople ?? 'full'];
 $('privacy').textContent = ['Email addresses and phone numbers are removed from the notes.', living,
   SET.causeOfDeath ? '' : 'Causes of death are not shown.'].filter(Boolean).join(' ');
 const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-cat]');

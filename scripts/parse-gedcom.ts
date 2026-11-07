@@ -173,7 +173,7 @@ export function parseGedcom(gedPath: string): ParseResult {
   const cfgPath = configPathFor(gedPath);
   const CFG: Config = existsSync(cfgPath) ? JSON.parse(readText(cfgPath)) : {};
   const SETTINGS = { historyLabel: 'History', homeCountry: 'Romania', timelineStart: null as number | null,
-    startEvent: null as string | null, livingYears: 100, livingPeople: 'initials' as NonNullable<Settings['livingPeople']>,
+    startEvent: null as string | null, livingYears: 100, livingPeople: 'full' as NonNullable<Settings['livingPeople']>,
     causeOfDeath: false, checksOnPage: false, ...CFG.settings };
   if (!['initials', 'hidden', 'full'].includes(SETTINGS.livingPeople)) {
     throw new Error(`settings.livingPeople must be "initials", "hidden" or "full", not ${JSON.stringify(SETTINGS.livingPeople)}`);

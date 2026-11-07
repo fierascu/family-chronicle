@@ -127,7 +127,7 @@ The code holds no family data. Everything specific to one tree goes in `<name>.c
 | `settings.timelineStart` | First year shown (default: the decade before the earliest birth) |
 | `settings.startEvent` | Title prefix of the event opened on load (default: first plausible history event) |
 | `settings.livingYears` | People without a death record born within this many years count as living (default 100) |
-| `settings.livingPeople` | How living people appear: `"initials"` (default), `"hidden"` ("Living person") or `"full"`. See [Privacy](#privacy) |
+| `settings.livingPeople` | How living people appear: `"full"` (default), `"initials"` or `"hidden"` ("Living person"). See [Privacy](#privacy) |
 | `settings.causeOfDeath` | Show causes of death (default `false`) |
 | `settings.checksOnPage` | Show "Things to fix" on the page (default `false`: they go to `build/checks.txt` only) |
 | `places` | Place key → `label`, `lat`, `lon`, `approx` (approximate pin) |
@@ -178,14 +178,14 @@ Everything the parser outputs for the page ends up in the page's JavaScript, rea
 - "Things to fix" (with full names, divorces, possible duplicates) goes to `build/checks.txt`, not the page, unless `settings.checksOnPage` is `true`.
 - Causes of death are left out unless `settings.causeOfDeath` is `true`.
 
-**People who may be living** (no death record, born within `livingYears`), with the default `livingPeople: "initials"`:
+**People who may be living** (no death record, born within `livingYears`) are shown in full by default (`livingPeople: "full"`): by name, with places and notes; only their birth dates are cut to the year. **Before publishing a page that isn't behind a password, set `livingPeople` to `"initials"` or `"hidden"`.** Then they are:
 - Shown by initials (`D. M.`); with `"hidden"`, as "Living person".
 - Birth year only, no birth place, no notes, occupation or education.
 - Marriages with a living spouse: year only, no place.
 - `noteEvents` about them are left out (their titles and text name the person).
 - A branch or family name carried only by living people is not shown.
 
-Initials stop the page from being found by searching a name, but relatives can still be worked out from the people around them. If the page is only for the family, put it behind a password; `"full"` then shows living people by name, with places and notes (birth dates stay year-only).
+Initials stop the page from being found by searching a name, but relatives can still be worked out from the people around them. Whichever setting you use, a page only for the family belongs behind a password.
 
 **Not covered:** text you write yourself in the config (`history`, `surnames`, `noteEvents` about people who have died) is published as written, and street addresses inside free-text notes are not detected.
 
@@ -195,7 +195,7 @@ Initials stop the page from being found by searching a name, but relatives can s
 ln -s ../../scripts/check_no_family_data.sh .git/hooks/pre-commit
 ```
 
-CI also builds the demo and checks that its two living people don't appear in the output.
+CI also builds the demo (which sets `livingPeople: "initials"`) and checks that its two living people don't appear in the output.
 
 Keep the repository private, or publish only the code.
 

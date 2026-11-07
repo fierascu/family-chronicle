@@ -87,7 +87,7 @@ export interface Settings {
   homeCountry?: string;
   timelineStart?: number | null;
   startEvent?: string | null;
-  /** how living people are shown: initials (default), "Living person", or in full */
+  /** how living people are shown: in full (default), by initials, or as "Living person" */
   livingPeople?: 'initials' | 'hidden' | 'full';
   causeOfDeath?: boolean;
 }
