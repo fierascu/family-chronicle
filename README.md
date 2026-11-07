@@ -14,8 +14,19 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 ## Project layout
 
 ```
-scripts/            generic build code (no family data)
-src/template.html   the page (no family data)
+index.html          page markup
+src/                the app in TypeScript (no family data)
+  main.ts             start-up: header, filters, search
+  timeline.ts         vis-timeline rows and items
+  globe.ts            D3 globe: canvas background, pins, migration lines
+  card.ts             record card (person, event, place)
+  data.ts             loads the parsed tree, family links
+  types.ts            shape of the parsed data
+  style.css
+scripts/
+  parse_gedcom.py     GEDCOM + config -> build/data.json
+  family-data-plugin.ts  Vite plugin: serves build/data.json and the country outlines to the app
+public/             .htaccess and robots.txt, copied into dist/
 demo/               fictional demo tree, committed
   dummy.ged           2 families, 10 people
   dummy.config.json   settings and history events for the demo
@@ -23,23 +34,30 @@ data/               your own tree, gitignored
   tree.ged            your GEDCOM export
   tree.config.json    settings for your tree (optional)
 build/, dist/       generated, gitignored
-usefull/            .htaccess and robots.txt for deployment
 ```
 
 ## Requirements
 
-- Node.js 18+ (map outlines)
-- Python 3.9+ (no extra packages)
+- Node.js 20.19+ (Vite build)
+- Python 3.9+ (GEDCOM parser, no extra packages)
 
 ## Quick start (demo)
 
 ```bash
 npm install
-npm run build
-open dist/index.html
+npm run dev
 ```
 
-Without `data/tree.ged`, the build uses the demo tree in `demo/`.
+`npm run dev` parses the tree and opens a live-reloading page. Without `data/tree.ged`, it uses the demo tree in `demo/`.
+
+To build the static site and look at it:
+
+```bash
+npm run build
+npm run preview
+```
+
+The page is built as ES modules, so `dist/index.html` must be served over HTTP (`npm run preview` or any web server); opening the file directly from disk does not work.
 
 ## Use your own tree
 
@@ -52,11 +70,13 @@ cp demo/dummy.config.json data/tree.config.json   # optional starting point, edi
 npm run build
 ```
 
-| Command | Builds from |
+| Command | Does |
 |---|---|
-| `npm run build` | `data/tree.ged` if it exists, else `demo/dummy.ged` |
-| `npm run build:demo` | always `demo/dummy.ged` |
-| `python3 scripts/parse_gedcom.py path/to/x.ged` then `python3 scripts/build.py` | any file; config read from `path/to/x.config.json` |
+| `npm run dev` / `npm run build` | parse `data/tree.ged` if it exists, else `demo/dummy.ged`; then serve / build |
+| `npm run dev:demo` / `npm run build:demo` | same, always with `demo/dummy.ged` |
+| `python scripts/parse_gedcom.py path/to/x.ged` then `npx vite build` | any file; config read from `path/to/x.config.json` |
+| `npm run preview` | serve the built `dist/` locally |
+| `npm run typecheck` | TypeScript check of the app and build scripts |
 
 The parser prints which input and config it used.
 
@@ -64,11 +84,11 @@ The parser prints which input and config it used.
 
 | Step | File | Output |
 |---|---|---|
-| Map outlines (Romania and neighbours) from Natural Earth via `world-atlas` | `scripts/extract_map.js` | `build/geo.json` |
 | Parse GEDCOM + config: normalise dates and places, estimate missing years, assign branches, add history events, run data checks | `scripts/parse_gedcom.py` | `build/data.json` |
-| Inject data into the page | `scripts/build.py` + `src/template.html` | `dist/index.html` |
+| Add the outlines of Romania and its neighbours, cut from Natural Earth (`world-atlas`), and hand everything to the app as `virtual:family-data` | `scripts/family-data-plugin.ts` | (in the bundle) |
+| Bundle the app, libraries, fonts and world maps | Vite | `dist/` |
 
-The page loads [vis-timeline](https://visjs.github.io/vis-timeline/) and [D3](https://d3js.org/) from CDNs and works offline otherwise.
+Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
 
 ## Configuration
 
@@ -109,11 +129,11 @@ Notes:
 - **Places.** A place can also carry its coordinates inside the GEDCOM file, with the standard `PLAC` › `MAP` › `LATI`/`LONG` tags. The demo does this. Place names with no location are listed under "Things to fix".
 - **Branches.** Without `branches`, each person's branch is their birth surname. Spouses who married in (with a married name and no parents in the tree) join the married surname. With `branches`, surnames not in the map join a relative's branch, or `Other`.
 - **History.** A `plausible` history event whose `people` aren't in the tree is shown as `context`.
-- **Map.** To map a different country, change the country IDs in `scripts/extract_map.js` and set `settings.homeCountry`.
+- **Map.** To map a different country, change `COUNTRIES` (and `REGION`) in `scripts/family-data-plugin.ts` and set `settings.homeCountry`.
 
 ## Deploying
 
-Publish `dist/index.html`, plus `usefull/.htaccess` and `usefull/robots.txt` to stop search engines crawling the folder.
+Upload the contents of `dist/` (including the hidden `.htaccess`). `.htaccess`, `robots.txt` and a `noindex` meta tag stop search engines indexing the page. Asset URLs are relative, so any sub-folder works.
 
 ## Privacy
 
