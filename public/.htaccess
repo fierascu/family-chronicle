@@ -1,2 +1,10 @@
 Options -Indexes
 Header set X-Robots-Tag "noindex, nofollow"
+
+# Password protection (Apache). noindex only keeps search engines out; anyone with the link can still open the page.
+# 1. On the server, outside the web folder:  htpasswd -c /home/USER/.htpasswd-family family
+# 2. Uncomment the four lines below and set the real path to that file.
+# AuthType Basic
+# AuthName "Family Chronicle"
+# AuthUserFile /home/USER/.htpasswd-family
+# Require valid-user

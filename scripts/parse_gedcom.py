@@ -3,6 +3,9 @@
 Input: the path given as argument, else data/tree.ged if it exists, else the demo (demo/dummy.ged).
 Everything specific to one tree (places, branches, history, notes) lives next to the GEDCOM file
 in <name>.config.json -- see demo/dummy.config.json. This script holds no family data.
+
+Output: build/data.json (bundled into the page, so everything in it is public to anyone who can open the page)
+and build/checks.txt (data problems with full names, for you only; never bundled unless settings.checksOnPage).
 """
 import os, sys, datetime, json, re, html
 from collections import Counter
@@ -14,7 +17,11 @@ GED = sys.argv[1] if len(sys.argv) > 1 else (REAL if os.path.exists(REAL) else D
 CFG_PATH = os.path.splitext(GED)[0] + '.config.json'
 CFG = json.load(open(CFG_PATH, encoding='utf-8-sig')) if os.path.exists(CFG_PATH) else {}
 SETTINGS = {'historyLabel': 'History', 'homeCountry': 'Romania', 'timelineStart': None, 'startEvent': None,
-            'livingYears': 100} | CFG.get('settings', {})
+            'livingYears': 100, 'livingPeople': 'initials', 'causeOfDeath': False, 'checksOnPage': False} | CFG.get('settings', {})
+if SETTINGS['livingPeople'] not in ('initials', 'hidden', 'full'):
+    sys.exit(f"settings.livingPeople must be \"initials\", \"hidden\" or \"full\", not {SETTINGS['livingPeople']!r}")
+# Living people are protected unless the config asks for "full" (only for a page that is password-protected)
+PROTECT = SETTINGS['livingPeople'] != 'full'
 
 lines = open(GED, encoding='utf-8-sig').read().splitlines()
 
@@ -45,7 +52,17 @@ def walk(n):
     for k in n['kids']: yield from walk(k)
 def clean_note(v):
     v = re.sub(r'<[^>]+>', ' ', v); v = html.unescape(v).replace('\xa0', ' ')
-    return re.sub(r'\s+', ' ', v).strip()
+    return scrub(re.sub(r'\s+', ' ', v).strip())
+EMAIL_RE = re.compile(r'[\w.+-]+@[\w-]+(\.[\w-]+)+')
+NUMBER_RE = re.compile(r'(?<!\w)\+?\(?\d[\d\s().\-/]{7,}\d(?!\w)')
+def _number(m):
+    groups = re.findall(r'\d+', m.group())
+    if sum(map(len, groups)) < 9: return m.group()  # dates like 12.03.1950 and ranges like 1941-1945
+    if all(len(g) == 4 and g[0] in '12' for g in groups): return m.group()  # a list of years
+    return '[number removed]'
+def scrub(v):
+    """Remove email addresses and long numbers (phone numbers, personal ID numbers such as the CNP) from free text."""
+    return NUMBER_RE.sub(_number, EMAIL_RE.sub('[email removed]', v))
 
 MON = {m: i+1 for i, m in enumerate('JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC'.split())}
 def parse_date(s):
@@ -99,7 +116,7 @@ for r in recs:
                 p[tag.lower()] = {'date': d, 'place': pk, 'rawPlace': raw, 'cause': cause}
         for tag, lab in (('OCCU', 'Occupation'), ('EDUC', 'Education / work')):
             e = kid(r, tag)
-            if e: p['notes'].append(f"{lab}: {e['val']}")
+            if e: p['notes'].append(f"{lab}: {scrub(e['val'])}")
         for n in kids(r, 'NOTE'):
             p['notes'].append(clean_note(n['val']))
         people[p['id']] = p
@@ -163,16 +180,27 @@ for _ in range(4):
                 if o and o != p['id'] and by(o)['branch']: p['branch'] = by(o)['branch']; break
             if p['branch']: break
 for p in people.values(): p['branch'] = p['branch'] or 'Other'
+if PROTECT:  # a branch made only of living people would publish their surname as its name
+    _dead_branches = {p['branch'] for p in people.values() if not p['living']}
+    for p in people.values():
+        if p['branch'] not in _dead_branches: p['branch'] = 'Other'
 # Branch list for the page: config order (keeps colours stable), only branches that have people, 'Other' always last
 _bcount = Counter(p['branch'] for p in people.values())
 _border = list(dict.fromkeys(BR.values()))
 BRANCHES = ([b for b in _border if _bcount[b]] + sorted(b for b in _bcount if b not in _border and b != 'Other')
             + (['Other'] if _bcount['Other'] else []))
 
-def display(p):
+def real_name(p):
     g = p['given'] or '(name unknown)'
     s = p['surname'] if p['surname'] not in ('', '?') else ''
     return (g + ' ' + s).strip()
+def initials(s): return ' '.join(w[0] + '.' for w in s.split() if w[:1].isalpha())
+def hidden(p): return PROTECT and p['living']
+def display(p):
+    """Name as published: living people get initials or "Living person" unless settings.livingPeople is "full"."""
+    if not hidden(p): return real_name(p)
+    if SETTINGS['livingPeople'] == 'hidden': return 'Living person'
+    return initials(real_name(p)) or 'Living person'
 
 # ---- build family events ----
 events = []
@@ -186,30 +214,35 @@ for p in people.values():
         if d:
             if p['living'] and k == 'birt':  # privacy: year only for living people
                 d = {'y': d['y'], 'prec': 'year'}
-            add(kind='family', cat='sure', type=k, person=p['id'], date=d, place=e['place'],
-                title=f"{label}: {nm}", text=(f"Cause: {e['cause']}" if e.get('cause') else ''), raw=e['rawPlace'])
+            cause = e.get('cause') if SETTINGS['causeOfDeath'] else None
+            add(kind='family', cat='sure', type=k, person=p['id'], date=d, place=None if hidden(p) else e['place'],
+                title=f"{label}: {nm}", text=(f"Cause: {scrub(cause)}" if cause else ''), raw=e['rawPlace'])
         elif k == 'birt' and p.get('estBirth'):
             add(kind='family', cat='plausible', type=k, person=p['id'], date={'y': p['estBirth']['y'], 'prec': 'est'},
-                place=e['place'], title=f"Born (estimated): {nm}", text=f"Year estimated {p['estBirth']['why']}.", raw=e['rawPlace'])
+                place=None if hidden(p) else e['place'], title=f"Born (estimated): {nm}", text=f"Year estimated {p['estBirth']['why']}.", raw=e['rawPlace'])
     if not p.get('birt') and p.get('estBirth') and not p['living']:
         add(kind='family', cat='plausible', type='birt', person=p['id'], date={'y': p['estBirth']['y'], 'prec': 'est'},
             place=None, title=f"Born (estimated): {display(p)}", text=f"Year estimated {p['estBirth']['why']}.", raw=None)
 for f in fams.values():
     m = f.get('marr')
     names = ' & '.join(display(by(x)) for x in (f['husb'], f['wife']) if x)
+    # a marriage with a living spouse: year only, no place
+    shield = any(hidden(by(x)) for x in (f['husb'], f['wife']) if x)
     if m and m['date']:
-        add(kind='family', cat='sure', type='marr', person=f['husb'] or f['wife'], partner=f['wife'], date=m['date'],
-            place=m['place'], title=f"Married: {names}", text='', raw=m['rawPlace'])
+        d = {'y': m['date']['y'], 'prec': 'year'} if shield else m['date']
+        add(kind='family', cat='sure', type='marr', person=f['husb'] or f['wife'], partner=f['wife'], date=d,
+            place=None if shield else m['place'], title=f"Married: {names}", text='', raw=m['rawPlace'])
     elif m:
         ys = [year(by(c)) for c in f['chil'] if year(by(c))]
         if ys:
             add(kind='family', cat='plausible', type='marr', person=f['husb'] or f['wife'], partner=f['wife'],
-                date={'y': min(ys) - 1, 'prec': 'est'}, place=m['place'], title=f"Married (estimated): {names}",
+                date={'y': min(ys) - 1, 'prec': 'est'}, place=None if shield else m['place'], title=f"Married (estimated): {names}",
                 text='Year estimated as one year before the eldest known child.', raw=m['rawPlace'])
 
 # ---- facts taken from notes (config "noteEvents"; dated by inference -> plausible, or "cat": "fun" for family stories) ----
 for n in CFG.get('noteEvents', []):
     if n['person'] not in people: continue
+    if hidden(people[n['person']]): continue  # config text names the person: not published for living people
     add(kind='family', cat='fun' if n.get('cat') == 'fun' else 'plausible', type='resi', person=n['person'], date={'y': n['year'], 'prec': 'est'},
         place=n.get('place'), title=n['title'], text=n.get('text', ''), raw=None)
 
@@ -221,31 +254,36 @@ for h in CFG.get('history', []):
         date={'y': h['start'], 'prec': 'year'}, end=h.get('end'), place=h.get('place'), title=h['title'],
         text=h.get('text', ''), link=h.get('link'))
 
-# ---- data checks ----
-checks = []
-# possible duplicates: same name and married name, birth years unknown or within 15 years
-groups = {}
-for p in people.values():
-    if p['given'] and p['given'] != '?':
-        groups.setdefault((display(p), p['married']), []).append(year(p) or (p.get('estBirth') or {}).get('y'))
-for (nm, mar), ys in groups.items():
-    known = [y for y in ys if y]
-    if len(ys) > 1 and (len(known) < 2 or max(known) - min(known) <= 15):
-        checks.append(f'{len(ys)} people named {nm}' + (f' (married {mar})' if mar else '') + ' with different parents — possibly one person entered more than once.')
-for f in fams.values():
-    if f['div'] and f['spouseDeath']:
-        names = ' & '.join(display(by(x)) for x in (f['husb'], f['wife']) if x)
-        checks.append(f'{names}: the family has both "Death of Spouse" and "Divorced" — one is probably wrong.')
-unnamed = [p for p in people.values() if not p['given'] or p['given'] in ('?',)]
-checks.append(f'{len(unnamed)} people have no given name.')
-nodate = [p for p in people.values() if p['dead'] and not (p['deat'] or {}).get('date')]
-checks.append(f'{len(nodate)} deaths have no date.')
-raws = [fold(e['raw']) for e in events if e.get('raw')]
-for n in CFG.get('placeNotes', []):  # config "placeNotes": shown when a raw place contains all the given strings
-    if any(all(fold(x) in r for x in n['rawPlaceContains']) for r in raws): checks.append(n['text'])
-unplaced = sorted({e['raw'] for e in events if e.get('raw') and not e['place']})
-if unplaced:
-    checks.append(f'{len(unplaced)} place names have no map location: ' + '; '.join(unplaced[:10]) + ('…' if len(unplaced) > 10 else ''))
+# ---- data checks: written to build/checks.txt with full names; on the page only with settings.checksOnPage ----
+def data_checks(name):
+    checks = []
+    # possible duplicates: same name and married name, birth years unknown or within 15 years
+    groups = {}
+    for p in people.values():
+        if name is not real_name and hidden(p): continue  # page version: no hidden names, and no false "Living person" matches
+        if p['given'] and p['given'] != '?':
+            groups.setdefault((name(p), p['married']), []).append(year(p) or (p.get('estBirth') or {}).get('y'))
+    for (nm, mar), ys in groups.items():
+        known = [y for y in ys if y]
+        if len(ys) > 1 and (len(known) < 2 or max(known) - min(known) <= 15):
+            checks.append(f'{len(ys)} people named {nm}' + (f' (married {mar})' if mar else '') + ' with different parents — possibly one person entered more than once.')
+    for f in fams.values():
+        if f['div'] and f['spouseDeath']:
+            names = ' & '.join(name(by(x)) for x in (f['husb'], f['wife']) if x)
+            checks.append(f'{names}: the family has both "Death of Spouse" and "Divorced" — one is probably wrong.')
+    unnamed = [p for p in people.values() if not p['given'] or p['given'] in ('?',)]
+    checks.append(f'{len(unnamed)} people have no given name.')
+    nodate = [p for p in people.values() if p['dead'] and not (p['deat'] or {}).get('date')]
+    checks.append(f'{len(nodate)} deaths have no date.')
+    raws = [fold(e['raw']) for e in events if e.get('raw')]
+    for n in CFG.get('placeNotes', []):  # config "placeNotes": shown when a raw place contains all the given strings
+        if any(all(fold(x) in r for x in n['rawPlaceContains']) for r in raws): checks.append(n['text'])
+    # from the records, not the events: a living person's place is left out of the events on purpose
+    recs_with_place = [p.get(k) for p in people.values() for k in ('birt', 'deat')] + [f.get('marr') for f in fams.values()]
+    unplaced = sorted({r['rawPlace'] for r in recs_with_place if r and r['rawPlace'] and not r['place']})
+    if unplaced:
+        checks.append(f'{len(unplaced)} place names have no map location: ' + '; '.join(unplaced[:10]) + ('…' if len(unplaced) > 10 else ''))
+    return checks
 
 # ---- family names (config "surnames"): meaning, origin, variants, changes over time ----
 # One entry per surname in the tree (birth or married). A config entry also claims the tree surnames
@@ -255,10 +293,15 @@ sn_of = {}  # surname key -> entry name
 for name, info in SN_CFG.items():
     for s in [name] + info.get('variants', []): sn_of.setdefault(key(s), name)
 surnames = {}
-for p in people.values():
+# Protected living people come last and only join names already found on others: a name or spelling
+# carried only by living people is not published.
+for p in sorted(people.values(), key=hidden):
     for s in {p['surname'], p['married']}:
         if not s or s == '?': continue
         name = sn_of.get(key(s)) or sn_of.setdefault(key(s), s)
+        if hidden(p):
+            if name in surnames and p['id'] not in surnames[name]['people']: surnames[name]['people'].append(p['id'])
+            continue
         e = surnames.setdefault(name, {'name': name, 'people': [], 'spellings': {}})
         if p['id'] not in e['people']: e['people'].append(p['id'])
         y = year(p) or (p.get('estBirth') or {}).get('y')
@@ -270,24 +313,45 @@ for name, e in surnames.items():
     e['spellings'] = [{'spelling': s, 'from': y} for s, y in sorted(e['spellings'].items(), key=lambda kv: (kv[1] or 9999, kv[0]))]
 surnames = sorted(surnames.values(), key=lambda e: (-len(e['people']), fold(e['name'])))
 undescribed = [e['name'] for e in surnames if e['name'] not in SN_CFG]
-if undescribed:
-    checks.append(f'{len(undescribed)} family names have no "about" text yet (config "surnames"): ' + ', '.join(undescribed[:10])
-                  + ('…' if len(undescribed) > 10 else ''))
+def all_checks(name):
+    checks = data_checks(name)
+    if undescribed:
+        checks.append(f'{len(undescribed)} family names have no "about" text yet (config "surnames"): ' + ', '.join(undescribed[:10])
+                      + ('…' if len(undescribed) > 10 else ''))
+    return checks
+report = all_checks(real_name)
 
-out = {'people': {pid: {k: p[k] for k in ('id', 'given', 'surname', 'married', 'sex', 'branch', 'living', 'dead', 'famc', 'fams')}
-                  | {'name': display(p), 'notes': p['notes'],
-                     'by': year(p) or (p.get('estBirth') or {}).get('y'), 'byEst': not year(p),
-                     'dy': year(p, 'deat'), 'bp': (p.get('birt') or {}).get('place'), 'dp': (p.get('deat') or {}).get('place')}
-                  for pid, p in people.items()},
-       'places': {k: {'label': v[0], 'lat': v[1], 'lon': v[2], 'approx': v[3]} for k, v in PLACES.items()},
-       'events': events, 'checks': checks, 'branches': BRANCHES, 'surnames': surnames,
-       'settings': {k: SETTINGS[k] for k in ('historyLabel', 'homeCountry', 'timelineStart', 'startEvent')}}
+def public_person(p):
+    out = {k: p[k] for k in ('id', 'given', 'surname', 'married', 'sex', 'branch', 'living', 'dead', 'famc', 'fams')} | {
+        'name': display(p), 'notes': p['notes'],
+        'by': year(p) or (p.get('estBirth') or {}).get('y'), 'byEst': not year(p),
+        'dy': year(p, 'deat'), 'bp': (p.get('birt') or {}).get('place'), 'dp': (p.get('deat') or {}).get('place')}
+    if hidden(p):  # living: no notes, no places, names reduced to initials (or nothing)
+        short = (lambda v: initials(v)) if SETTINGS['livingPeople'] == 'initials' else (lambda v: '')
+        out |= {'given': short(p['given']) or ('Living person' if SETTINGS['livingPeople'] == 'hidden' else ''),
+                'surname': short(p['surname']), 'married': short(p['married']), 'notes': [], 'bp': None, 'dp': None}
+    return out
+
+# Only places that something on the page points to (the config may list more, e.g. a living person's town)
+used_places = {e['place'] for e in events if e.get('place')}
+out = {'people': {pid: public_person(p) for pid, p in people.items()},
+       'places': {k: {'label': v[0], 'lat': v[1], 'lon': v[2], 'approx': v[3]} for k, v in PLACES.items() if k in used_places},
+       # raw place strings stay out of the page: they can be anything the tree's author typed, even an address
+       'events': [{k: v for k, v in e.items() if k != 'raw'} for e in events],
+       'checks': all_checks(display) if SETTINGS['checksOnPage'] else [], 'branches': BRANCHES, 'surnames': surnames,
+       'settings': {k: SETTINGS[k] for k in ('historyLabel', 'homeCountry', 'timelineStart', 'startEvent', 'livingPeople', 'causeOfDeath')}}
 os.makedirs(BUILD, exist_ok=True)
 json.dump(out, open(os.path.join(BUILD, 'data.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+with open(os.path.join(BUILD, 'checks.txt'), 'w', encoding='utf-8') as fh:
+    fh.write('Things to fix in ' + os.path.basename(GED) + ' (full names; not part of the page)\n\n'
+             + ''.join(f'- {c}\n' for c in report))
 
 enc = sys.stdout.encoding or 'utf-8'
 def safe(s): return s.encode(enc, errors='replace').decode(enc)
 print('input:', os.path.relpath(GED, ROOT), '| config:', os.path.relpath(CFG_PATH, ROOT) if CFG else 'none')
 print(len(people), 'people;', Counter((e['kind'], e['cat']) for e in events))
 print(safe('branches: ' + str(Counter(p['branch'] for p in people.values()))))
-print([safe(c) for c in checks])
+print(safe(f'privacy: living people {SETTINGS["livingPeople"]} ({sum(hidden(p) for p in people.values())} protected), '
+           f'cause of death {"shown" if SETTINGS["causeOfDeath"] else "hidden"}, '
+           f'checks {"on the page" if SETTINGS["checksOnPage"] else "in build/checks.txt only"}'))
+print(safe(f'{len(report)} things to fix: see build/checks.txt'))

@@ -88,6 +88,9 @@ export interface Settings {
   homeCountry?: string;
   timelineStart?: number | null;
   startEvent?: string | null;
+  /** how living people are shown: initials (default), "Living person", or in full */
+  livingPeople?: 'initials' | 'hidden' | 'full';
+  causeOfDeath?: boolean;
 }
 
 export interface CountryOutline {

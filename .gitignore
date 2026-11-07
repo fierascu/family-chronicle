@@ -1,12 +1,20 @@
 node_modules/
 build/
 dist/
+.idea/
 
 # Family data: names, dates and places of living people. Keep it out of the repo.
+# scripts/check_no_family_data.sh (run in CI) fails if any of it is ever committed.
 data/
-*.ged
-.idea/
+# GEDCOM exports in any letter case (.ged, .GED, .Ged), and zipped GEDCOM
+*.[gG][eE][dD]
+*.[gG][eE][dD][zZ][iI][pP]
+# tree configs hold names, notes and family stories
+*.config.json
+# password file for a protected page (see public/.htaccess)
+.htpasswd
 
 # Demo data is fictional and committed
 !demo/
 !demo/dummy.ged
+!demo/dummy.config.json
