@@ -7,6 +7,7 @@ export const EV: ChronicleEvent[] = DATA.events.map((e, i) => ({ ...e, id: 'e' +
 export const SET = DATA.settings ?? {};
 export const CHECKS = DATA.checks;
 export const GEO = DATA.geo;
+export const SURNAMES = DATA.surnames ?? [];
 export const NOW = new Date().getFullYear();
 export const people: Person[] = Object.values(P);
 export const HOME = SET.homeCountry || 'Romania';

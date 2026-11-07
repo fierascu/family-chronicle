@@ -207,13 +207,13 @@ for f in fams.values():
                 date={'y': min(ys) - 1, 'prec': 'est'}, place=m['place'], title=f"Married (estimated): {names}",
                 text='Year estimated as one year before the eldest known child.', raw=m['rawPlace'])
 
-# ---- facts taken from notes (config "noteEvents"; dated by inference -> plausible) ----
+# ---- facts taken from notes (config "noteEvents"; dated by inference -> plausible, or "cat": "fun" for family stories) ----
 for n in CFG.get('noteEvents', []):
     if n['person'] not in people: continue
-    add(kind='family', cat='plausible', type='resi', person=n['person'], date={'y': n['year'], 'prec': 'est'},
+    add(kind='family', cat='fun' if n.get('cat') == 'fun' else 'plausible', type='resi', person=n['person'], date={'y': n['year'], 'prec': 'est'},
         place=n.get('place'), title=n['title'], text=n.get('text', ''), raw=None)
 
-# ---- historical events (config "history"): plausible links (orange) and context (blue) ----
+# ---- historical events (config "history"): plausible links (orange), context (blue), fun (magenta) ----
 for h in CFG.get('history', []):
     linked = [x for x in h.get('people', []) if x in people]
     cat = 'context' if h['cat'] == 'plausible' and not linked else h['cat']  # no linked relative in this tree
@@ -247,13 +247,40 @@ unplaced = sorted({e['raw'] for e in events if e.get('raw') and not e['place']})
 if unplaced:
     checks.append(f'{len(unplaced)} place names have no map location: ' + '; '.join(unplaced[:10]) + ('…' if len(unplaced) > 10 else ''))
 
+# ---- family names (config "surnames"): meaning, origin, variants, changes over time ----
+# One entry per surname in the tree (birth or married). A config entry also claims the tree surnames
+# listed in its "variants". Spellings found in the tree are listed with the earliest birth year seen.
+SN_CFG = CFG.get('surnames', {})
+sn_of = {}  # surname key -> entry name
+for name, info in SN_CFG.items():
+    for s in [name] + info.get('variants', []): sn_of.setdefault(key(s), name)
+surnames = {}
+for p in people.values():
+    for s in {p['surname'], p['married']}:
+        if not s or s == '?': continue
+        name = sn_of.get(key(s)) or sn_of.setdefault(key(s), s)
+        e = surnames.setdefault(name, {'name': name, 'people': [], 'spellings': {}})
+        if p['id'] not in e['people']: e['people'].append(p['id'])
+        y = year(p) or (p.get('estBirth') or {}).get('y')
+        sp = e['spellings']
+        if s not in sp or (y and (sp[s] is None or y < sp[s])): sp[s] = y
+for name, e in surnames.items():
+    info = SN_CFG.get(name, {})
+    e.update({k: info[k] for k in ('meaning', 'origin', 'variants', 'changes', 'link') if k in info})
+    e['spellings'] = [{'spelling': s, 'from': y} for s, y in sorted(e['spellings'].items(), key=lambda kv: (kv[1] or 9999, kv[0]))]
+surnames = sorted(surnames.values(), key=lambda e: (-len(e['people']), fold(e['name'])))
+undescribed = [e['name'] for e in surnames if e['name'] not in SN_CFG]
+if undescribed:
+    checks.append(f'{len(undescribed)} family names have no "about" text yet (config "surnames"): ' + ', '.join(undescribed[:10])
+                  + ('…' if len(undescribed) > 10 else ''))
+
 out = {'people': {pid: {k: p[k] for k in ('id', 'given', 'surname', 'married', 'sex', 'branch', 'living', 'dead', 'famc', 'fams')}
                   | {'name': display(p), 'notes': p['notes'],
                      'by': year(p) or (p.get('estBirth') or {}).get('y'), 'byEst': not year(p),
                      'dy': year(p, 'deat'), 'bp': (p.get('birt') or {}).get('place'), 'dp': (p.get('deat') or {}).get('place')}
                   for pid, p in people.items()},
        'places': {k: {'label': v[0], 'lat': v[1], 'lon': v[2], 'approx': v[3]} for k, v in PLACES.items()},
-       'events': events, 'checks': checks, 'branches': BRANCHES,
+       'events': events, 'checks': checks, 'branches': BRANCHES, 'surnames': surnames,
        'settings': {k: SETTINGS[k] for k in ('historyLabel', 'homeCountry', 'timelineStart', 'startEvent')}}
 os.makedirs(BUILD, exist_ok=True)
 json.dump(out, open(os.path.join(BUILD, 'data.json'), 'w', encoding='utf-8'), ensure_ascii=False)

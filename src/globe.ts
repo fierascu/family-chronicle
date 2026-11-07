@@ -21,7 +21,7 @@ type CountriesTopo = Topology<{ countries: GeometryCollection }>;
 
 const W = 480, H = 480;
 const SCALE_MIN = 80, SCALE_MAX = 8000;
-const rank: Record<Category, number> = { sure: 3, plausible: 2, context: 1 };
+const rank: Record<Category, number> = { sure: 3, plausible: 2, context: 1, fun: 0 };
 
 interface PinRow { k: string; evs: ChronicleEvent[]; cat: Category }
 interface Segment { a: string; b: string; pid: string }
@@ -183,7 +183,7 @@ export function createGlobe(
     const byPlace = d3.group(visibleEvents(), e => e.place!);
     const selPlaces = state.sel ? new Set(personPath(P[state.sel])) : new Set<string>();
     const rows: PinRow[] = [...byPlace].map(([k, evs]) =>
-      ({ k, evs, cat: evs.reduce<Category>((a, e) => (rank[e.cat] > rank[a] ? e.cat : a), 'context') }));
+      ({ k, evs, cat: evs.reduce<Category>((a, e) => (rank[e.cat] > rank[a] ? e.cat : a), 'fun') }));
     pinG.selectAll<SVGCircleElement, PinRow>('circle').data(rows, d => d.k).join('circle')
       .attr('class', d => `pin ${d.cat}${selPlaces.has(d.k) ? ' on' : ''}`)
       .attr('cx', d => xy(d.k)[0]).attr('cy', d => xy(d.k)[1]).attr('r', radius)

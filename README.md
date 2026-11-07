@@ -4,11 +4,13 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 
 - One timeline row per family branch, plus a history row
 - Lifespans as bars; hatched when a date is estimated
-- Three event categories, shown by colour and shape:
+- Four event categories, shown by colour and shape:
   - **Sure** (green circle): dated facts from the tree
   - **Plausible** (orange diamond): estimated dates, or history that likely touched a named relative
   - **Context** (blue square): history of the time and place, no claimed personal link
+  - **Fun** (magenta star): family stories, firsts and curiosities
 - The map shows only events in the years visible on the timeline, with migration lines between a person's places
+- A "Family names" section: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
 
 ## Project layout
@@ -19,7 +21,7 @@ src/                the app in TypeScript (no family data)
   main.ts             start-up: header, filters, search
   timeline.ts         vis-timeline rows and items
   globe.ts            D3 globe: canvas background, pins, migration lines
-  card.ts             record card (person, event, place)
+  card.tsx            record card (Preact) (person, event, place)
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
   style.css
@@ -38,7 +40,7 @@ build/, dist/       generated, gitignored
 
 ## Requirements
 
-- Node.js 20.19+ (Vite build)
+- Node.js 20.19+ or 22.12+ (Vite 7 does not run on Node 21 or 22.0�22.11)
 - Python 3.9+ (GEDCOM parser, no extra packages)
 
 ## Quick start (demo)
@@ -86,9 +88,23 @@ The parser prints which input and config it used.
 |---|---|---|
 | Parse GEDCOM + config: normalise dates and places, estimate missing years, assign branches, add history events, run data checks | `scripts/parse_gedcom.py` | `build/data.json` |
 | Add the outlines of Romania and its neighbours, cut from Natural Earth (`world-atlas`), and hand everything to the app as `virtual:family-data` | `scripts/family-data-plugin.ts` | (in the bundle) |
-| Bundle the app, libraries, fonts and world maps | Vite | `dist/` |
+| Bundle the app, libraries, fonts and world maps; compile the Preact JSX (`@preact/preset-vite`) | Vite | `dist/` |
 
-Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
+Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), [Preact](https://preactjs.com/) (the record card), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
+
+## Libraries
+
+| Package | Version | Used for |
+|---|---|---|
+| `vite` | ^7.3.7 | dev server and build; needs Node `^20.19.0 \|\| >=22.12.0` |
+| `@preact/preset-vite` | 2.10.6 | JSX compile and hot reload for Preact; supports Vite 2�8 |
+| `preact` | 11.2.0 | record card (`src/card.tsx`) |
+| `vis-timeline` | ^7.7.4 | timeline; the `standalone` build is used, so its peer packages are bundled in |
+| `d3` | 7.9.0 | globe projection, pins and migration lines |
+| `topojson-client`, `world-atlas` | 3.1.0, 2.0.2 | country and land outlines |
+| `typescript` | 5.9.3 | type check only; Vite strips types when it builds |
+
+Only the record card uses Preact. The timeline and globe draw through vis-timeline and D3, so they stay plain TypeScript. JSX is set up in `tsconfig.json` (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`).
 
 ## Configuration
 
@@ -104,8 +120,9 @@ The code holds no family data. Everything specific to one tree goes in `<name>.c
 | `places` | Place key → `label`, `lat`, `lon`, `approx` (approximate pin) |
 | `placeRules` | `{contains, place}`: map messy place strings to a place key (`"Lisabona"` → `"Lisbon"`) |
 | `branches` | Surname → branch name. Order sets branch colours |
-| `noteEvents` | Facts from free-text notes: `person`, `year`, `place`, `title`, `text` (shown as plausible) |
-| `history` | Historical events: `cat` (`plausible` or `context`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
+| `noteEvents` | Facts from free-text notes: `person`, `year`, `place`, `title`, `text`, optional `cat: "fun"` (shown as plausible, or as fun) |
+| `history` | Historical events: `cat` (`plausible`, `context` or `fun`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
+| `surnames` | Family name → `meaning`, `origin`, `variants` (other spellings, also matched in the tree), `changes` (`when`, `text`), `link` |
 | `placeNotes` | Extra "things to fix" lines: `text`, shown when a raw place contains all strings in `rawPlaceContains` |
 
 Example:

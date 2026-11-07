@@ -1,6 +1,6 @@
 /** Shape of build/data.json (written by scripts/parse_gedcom.py) plus `geo` (added by the Vite plugin). */
 
-export type Category = 'sure' | 'plausible' | 'context';
+export type Category = 'sure' | 'plausible' | 'context' | 'fun';
 
 export interface DateValue {
   y: number;
@@ -69,6 +69,20 @@ export interface HistoryEvent extends EventBase {
 
 export type ChronicleEvent = FamilyEvent | HistoryEvent;
 
+export interface SurnameInfo {
+  name: string;
+  /** ids of people with this birth or married surname (or one of its variants) */
+  people: string[];
+  /** spellings found in the tree, with the earliest birth year seen */
+  spellings: { spelling: string; from: number | null }[];
+  /** the rest comes from config "surnames" */
+  meaning?: string;
+  origin?: string;
+  variants?: string[];
+  changes?: { when: string; text: string }[];
+  link?: string;
+}
+
 export interface Settings {
   historyLabel?: string;
   homeCountry?: string;
@@ -87,6 +101,7 @@ export interface ChronicleData {
   events: Omit<ChronicleEvent, 'id'>[];
   checks: string[];
   branches?: string[];
+  surnames?: SurnameInfo[];
   settings?: Settings;
   geo: CountryOutline[];
 }

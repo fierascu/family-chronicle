@@ -1,8 +1,10 @@
 import { NOW } from './data';
 import type { Category } from './types';
 
+export const CATS: Category[] = ['sure', 'plausible', 'context', 'fun'];
+
 export const state = {
-  cats: new Set<Category>(['sure', 'plausible', 'context']),
+  cats: new Set<Category>(CATS),
   branch: '',
   /** selected person id */
   sel: null as string | null,
@@ -13,10 +15,12 @@ export const state = {
 const KEY = 'ftc';
 try {
   const stored = JSON.parse(localStorage.getItem(KEY) || '{}');
-  if (Array.isArray(stored.cats)) state.cats = new Set(stored.cats);
+  // stored as the categories switched off, so categories added later start switched on
+  const off: unknown = stored.off ?? (Array.isArray(stored.cats) ? ['sure', 'plausible', 'context'].filter(c => !stored.cats.includes(c)) : []);
+  if (Array.isArray(off)) state.cats = new Set(CATS.filter(c => !off.includes(c)));
   if (typeof stored.branch === 'string') state.branch = stored.branch;
 } catch { /* storage blocked or corrupt: use defaults */ }
 
 export function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ cats: [...state.cats], branch: state.branch })); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ off: CATS.filter(c => !state.cats.has(c)), branch: state.branch })); } catch { /* ignore */ }
 }

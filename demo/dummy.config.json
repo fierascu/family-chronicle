@@ -9,12 +9,16 @@
  "branches": {},
  "noteEvents": [
   {"person": "I10", "year": 1985, "place": "Timișoara, Timiș, Romania", "title": "Moved to Timișoara: Dan Marin",
-   "text": "From tree notes; year estimated."}
+   "text": "From tree notes; year estimated."},
+  {"cat": "fun", "person": "I10", "year": 1990, "place": "Timișoara, Timiș, Romania", "title": "Dan Marin's first car: a Dacia 1300",
+   "text": "Family story: it broke down on the way home from the dealer."}
  ],
  "history": [
   {"cat": "plausible", "start": 1941, "end": 1945, "place": null, "title": "WWII: young men of the 1920s drafted",
    "text": "Vasile Popescu died in October 1944 and Gavril Marin (b. 1920) was of military age. Check military service records.",
    "link": "https://en.wikipedia.org/wiki/Romania_in_World_War_II", "people": ["I5", "I7"]},
+  {"cat": "fun", "start": 1966, "end": null, "place": null, "title": "First television in the family",
+   "text": "Family story: half the street came over to watch. Year from memory.", "people": ["I7"]},
   {"cat": "context", "start": 1918, "end": null, "place": null, "title": "Great Union", "text": "1 December 1918.",
    "link": "https://en.wikipedia.org/wiki/Union_of_Transylvania_with_Romania"},
   {"cat": "context", "start": 1947, "end": null, "place": null, "title": "Monarchy abolished", "text": "30 December 1947.",
@@ -24,5 +28,26 @@
   {"cat": "context", "start": 2007, "end": null, "place": null, "title": "Romania joins the EU", "text": "1 January 2007.",
    "link": "https://en.wikipedia.org/wiki/Romania_in_the_European_Union"}
  ],
+ "surnames": {
+  "Popescu": {
+   "meaning": "Of the priest's family: popă (priest) + -escu (belonging to, descended from).",
+   "origin": "Romanian, most common in Wallachia and Oltenia, where -escu names are typical. Today the most frequent surname in Romania.",
+   "variants": ["Popa", "Popovici", "Popoviciu"],
+   "changes": [
+    {"when": "before 1800s", "text": "People were usually known by a father's name or a nickname, e.g. Ion al lui Popa (Ion, son of the priest)."},
+    {"when": "1800s", "text": "-escu forms spread as family names, first among boyars and townspeople, then everyone."},
+    {"when": "1895", "text": "The Romanian law on names made family names fixed and hereditary."}
+   ],
+   "link": "https://en.wikipedia.org/wiki/Popescu"
+  },
+  "Marin": {
+   "meaning": "From the given name Marin, Latin Marinus: of the sea.",
+   "origin": "A father's first name turned surname (patronymic). Found across Romania and the Balkans.",
+   "variants": ["Marinescu", "Marinoiu", "Marinache"],
+   "changes": [
+    {"when": "1800s", "text": "Likely began as Marin's son; the -escu form Marinescu is the same name made formal."}
+   ]
+  }
+ },
  "placeNotes": []
 }

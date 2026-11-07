@@ -1,7 +1,7 @@
 /* Layout: archive register — header + legend, full-width timeline band, then map and record card side by side (stacked on phones) */
 :root{
   --bg:#eef1f0; --paper:#f9fbfa; --ink:#1d2a2e; --muted:#5b6a6e; --rule:#cfd8d7; --land:#c6d2cc; --land-ro:#aec4b9; --water:#e8eeee;
-  --sure:#2c7d4a; --plaus:#c46a12; --ctx:#2f64a8; --accent:#1f5d63; --bar:#c9d5d2; --bar-ink:#2a3a3e; --sel:#1f5d63;
+  --sure:#2c7d4a; --plaus:#c46a12; --ctx:#2f64a8; --fun:#b8338f; --accent:#1f5d63; --bar:#c9d5d2; --bar-ink:#2a3a3e; --sel:#1f5d63;
   --br0:#7a5fb5; --br1:#2b8a8a; --br2:#a8862a; --br3:#c0577a; --br4:#7d6450; --br5:#4a7ab0;
   --br6:#7f8a33; --br7:#a8414a; --br8:#5f6f7a; --br9:#9a4f9a; --bauto-l:42%; --bmix:32%;
   --f-display:"Alegreya",Georgia,"Times New Roman",serif;
@@ -10,12 +10,12 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#121a1c; --paper:#182326; --ink:#e3ece9; --muted:#97a8a6; --rule:#2c3b3e; --land:#1f2c2f; --land-ro:#26393a; --water:#141e20;
-  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
+  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --fun:#ee8fd0; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
   --br0:#a99be0; --br1:#5fc0bd; --br2:#d9b54f; --br3:#e58aa8; --br4:#b89a80; --br5:#8fb3e0;
   --br6:#b8c46a; --br7:#e0848b; --br8:#a3b3bd; --br9:#d08ad0; --bauto-l:70%; --bmix:38%}}
 :root[data-theme="dark"]{
   --bg:#121a1c; --paper:#182326; --ink:#e3ece9; --muted:#97a8a6; --rule:#2c3b3e; --land:#1f2c2f; --land-ro:#26393a; --water:#141e20;
-  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
+  --sure:#5cc47f; --plaus:#f0a050; --ctx:#7aa8ec; --fun:#ee8fd0; --accent:#7cc3c4; --bar:#2c3d40; --bar-ink:#dbe6e3; --sel:#7cc3c4; color-scheme:dark;
   --br0:#a99be0; --br1:#5fc0bd; --br2:#d9b54f; --br3:#e58aa8; --br4:#b89a80; --br5:#8fb3e0;
   --br6:#b8c46a; --br7:#e0848b; --br8:#a3b3bd; --br9:#d08ad0; --bauto-l:70%; --bmix:38%}
 /* branch colours: .bN sets --bc, consumed by bars, arcs and swatches */
@@ -43,6 +43,7 @@ input[type=search]{width:min(12rem,100%)}
 .g.sure{background:var(--sure);border-radius:50%}
 .g.plausible{border:2px solid var(--plaus);transform:rotate(45deg);width:9px;height:9px;background:transparent}
 .g.context{background:var(--ctx);border-radius:2px}
+.g.fun{background:var(--fun);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);width:13px;height:13px}
 .panel{background:var(--paper);border:1px solid var(--rule);border-radius:10px}
 #tl{min-height:200px}
 .tlhead{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;padding:12px 14px 8px}
@@ -65,7 +66,7 @@ input[type=search]{width:min(12rem,100%)}
 #map{position:absolute;top:0;left:0;width:100%;height:100%;cursor:grab}
 #map:active{cursor:grabbing}
 #map .pin{cursor:pointer;stroke:var(--paper);stroke-width:1.5}
-#map .pin.sure{fill:var(--sure)} #map .pin.plausible{fill:var(--plaus)} #map .pin.context{fill:var(--ctx)}
+#map .pin.sure{fill:var(--sure)} #map .pin.plausible{fill:var(--plaus)} #map .pin.context{fill:var(--ctx)} #map .pin.fun{fill:var(--fun)}
 #map .pin.on{stroke:var(--ink);stroke-width:2.5}
 #map .pl{fill:var(--ink);font:500 10.5px var(--f-body);pointer-events:none;paint-order:stroke;stroke:var(--paper);stroke-width:3px}
 #map .mig{fill:none;stroke:var(--bc,var(--muted));stroke-opacity:.6;stroke-width:1.3}
@@ -108,8 +109,10 @@ a{color:var(--accent)}
 .vis-item.sure .vis-dot{border-color:var(--sure)!important;background:var(--sure)!important}
 .vis-item.plausible .vis-dot{border:2px solid var(--plaus)!important;background:var(--paper)!important;border-radius:1px!important;transform:rotate(45deg);width:7px;height:7px}
 .vis-item.context .vis-dot{border-color:var(--ctx)!important;border-radius:1px!important}
+.vis-item.fun .vis-dot{border-width:7px!important;border-color:var(--fun)!important;background:var(--fun)!important;border-radius:0!important;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
 .vis-item.vis-range.histr{border-width:1px!important;color:var(--ink)!important;height:18px;line-height:15px}
 .vis-item.vis-range.histr.plausible{background:color-mix(in srgb,var(--plaus) 22%,transparent)!important;border:1px dashed var(--plaus)!important}
+.vis-item.vis-range.histr.fun{background:color-mix(in srgb,var(--fun) 18%,transparent)!important;border:1px dotted var(--fun)!important}
 .vis-item.vis-range.histr.context{background:color-mix(in srgb,var(--ctx) 18%,transparent)!important;border-color:var(--ctx)!important}
 .vis-item.vis-selected .vis-item-content{font-weight:700}
 .vis-current-time{background:var(--accent)!important}

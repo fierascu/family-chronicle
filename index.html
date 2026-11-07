@@ -18,6 +18,7 @@
       <button class="chip" id="c-sure" aria-pressed="true" data-cat="sure"><span class="g sure"></span>Sure</button>
       <button class="chip" id="c-plaus" aria-pressed="true" data-cat="plausible"><span class="g plausible"></span>Plausible</button>
       <button class="chip" id="c-ctx" aria-pressed="true" data-cat="context"><span class="g context"></span>Context</button>
+      <button class="chip" id="c-fun" aria-pressed="true" data-cat="fun"><span class="g fun"></span>Fun</button>
       <label class="hint" for="branch"><span class="sw" id="branch-sw" hidden></span>Branch</label>
       <select id="branch"><option value="">All branches</option></select>
       <input type="search" id="q" placeholder="Find a person…" aria-label="Find a person" list="names">
@@ -52,7 +53,13 @@
         <dt><span class="g sure"></span>Sure</dt><dd>A dated fact recorded in the tree: birth, death, marriage.</dd>
         <dt><span class="g plausible"></span>Plausible</dt><dd>Estimated dates (from children, siblings or notes), or a historical event that very likely touched a named relative. Each one says what to check.</dd>
         <dt><span class="g context"></span>Context</dt><dd>History of the places and times the family lived through, with no claimed personal link.</dd>
+        <dt><span class="g fun"></span>Fun</dt><dd>Family stories, firsts and curiosities: the first TV, a famous recipe, a legendary trip. Told for enjoyment, not checked like the rest.</dd>
       </dl>
+    </section>
+    <section class="panel">
+      <h2>Family names</h2>
+      <p class="hint" style="margin:6px 0 0">What each name suggests, where it comes from, its variations and how it changed.</p>
+      <div class="rel" id="surnames" style="margin-top:8px"></div>
     </section>
     <section class="panel">
       <h2>Things to fix in the tree</h2>
