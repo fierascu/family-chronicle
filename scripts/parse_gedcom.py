@@ -254,8 +254,8 @@ out = {'people': {pid: {k: p[k] for k in ('id', 'given', 'surname', 'married', '
                   for pid, p in people.items()},
        'places': {k: {'label': v[0], 'lat': v[1], 'lon': v[2], 'approx': v[3]} for k, v in PLACES.items()},
        'events': events, 'checks': checks, 'branches': BRANCHES,
-       'settings': {k: SETTINGS[k] for k in ('historyLabel', 'homeCountry', 'timelineStart', 'startEvent')},
-       'geo': json.load(open(os.path.join(BUILD, 'geo.json')))}
+       'settings': {k: SETTINGS[k] for k in ('historyLabel', 'homeCountry', 'timelineStart', 'startEvent')}}
+os.makedirs(BUILD, exist_ok=True)
 json.dump(out, open(os.path.join(BUILD, 'data.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 
 enc = sys.stdout.encoding or 'utf-8'
