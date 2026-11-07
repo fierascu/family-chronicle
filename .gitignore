@@ -2,6 +2,8 @@ node_modules/
 build/
 dist/
 .idea/
+# personal Claude Code settings (launch.json in .claude/ is shared)
+.claude/settings.local.json
 
 # Family data: names, dates and places of living people. Keep it out of the repo.
 # scripts/check_no_family_data.sh (run in CI) fails if any of it is ever committed.
