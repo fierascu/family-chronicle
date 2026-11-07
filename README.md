@@ -133,7 +133,7 @@ The code holds no family data. Everything specific to one tree goes in `<name>.c
 | `places` | Place key → `label`, `lat`, `lon`, `approx` (approximate pin) |
 | `placeRules` | `{contains, place}`: map messy place strings to a place key (`"Lisabona"` → `"Lisbon"`) |
 | `branches` | Surname → branch name. Order sets branch colours |
-| `noteEvents` | Facts from free-text notes: `person`, `year`, `place`, `title`, `text`, optional `cat: "fun"` (shown as plausible, or as fun) |
+| `noteEvents` | Facts from free-text notes or sources: `person`, `year`, `place`, `title`, `text`, optional `cat: "fun"` (shown as plausible, or as fun), `link` (source page, shown as "Read more"), `dated: true` (the year comes from a source, so it is shown without "c.") |
 | `history` | Historical events: `cat` (`plausible`, `context` or `fun`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
 | `surnames` | Family name → `meaning`, `origin`, `variants` (other spellings, also matched in the tree), `changes` (`when`, `text`), `link` |
 | `placeNotes` | Extra "things to fix" lines: `text`, added when a raw place contains all strings in `rawPlaceContains` |
@@ -160,6 +160,12 @@ Notes:
 - **Branches.** Without `branches`, each person's branch is their birth surname. Spouses who married in (with a married name and no parents in the tree) join the married surname. With `branches`, surnames not in the map join a relative's branch, or `Other`.
 - **History.** A `plausible` history event whose `people` aren't in the tree is shown as `context`.
 - **Map.** To map a different country, change `COUNTRIES` (and `REGION`) in `scripts/family-data-plugin.ts` and set `settings.homeCountry`.
+
+## Newspaper clippings
+
+Scanned newspaper pages can sit next to the tree in `<tree folder>/clippings/` (for `data/tree.ged`, that is `data/clippings/`), named `<document>_p<page>.jpg` after the Arcanum viewer address `adt.arcanum.com/en/view/<document>/?pg=<page>`. A `noteEvents` entry whose `link` or `text` contains such an address gets a thumbnail of the page in the person's record; clicking it opens a full-screen viewer (Prev/Next or arrow keys, click the page for full size, Esc to close). The header button "Newspaper clippings" opens the viewer at the oldest one.
+
+Only the pages an event links to are served by `npm run dev` and copied to `dist/clippings/` by `npm run build`. Like the rest of `data/`, the folder is ignored by git. Scans from a subscription archive are under copyright: keep a page that shows them behind a password.
 
 ## Deploying
 

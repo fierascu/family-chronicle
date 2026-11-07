@@ -50,6 +50,10 @@ interface EventBase {
   place: string | null;
   title: string;
   text: string;
+  /** source page, e.g. an Arcanum newspaper page */
+  link?: string;
+  /** newspaper page images (file names in clippings/) */
+  images?: string[];
 }
 
 export interface FamilyEvent extends EventBase {
@@ -63,7 +67,6 @@ export interface HistoryEvent extends EventBase {
   person: null;
   people: string[];
   end: number | null;
-  link?: string;
 }
 
 export type ChronicleEvent = FamilyEvent | HistoryEvent;

@@ -9,7 +9,8 @@
  * and `report`, the data problems with full names, for you only (the plugin writes it to build/checks.txt;
  * it reaches the page only with settings.checksOnPage).
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { ChronicleData, DateValue, Settings, SurnameInfo } from '../src/types';
 
 // ---- config file shape (every key optional) ----
@@ -18,7 +19,7 @@ interface Config {
   places?: Record<string, { label: string; lat: number; lon: number; approx?: boolean }>;
   placeRules?: { contains: string; place: string }[];
   branches?: Record<string, string>;
-  noteEvents?: { person: string; year: number; place?: string; title: string; text?: string; cat?: string }[];
+  noteEvents?: { person: string; year: number; dated?: boolean; place?: string; title: string; text?: string; link?: string; cat?: string }[];
   history?: { cat: string; start: number; end?: number; place?: string; title: string; text?: string; link?: string; people?: string[] }[];
   surnames?: Record<string, Omit<SurnameInfo, 'name' | 'people' | 'spellings'>>;
   placeNotes?: { text: string; rawPlaceContains: string[] }[];
@@ -44,6 +45,8 @@ export interface ParseResult {
   data: Omit<ChronicleData, 'geo'>;
   /** the config file used, or null when there is none */
   configPath: string | null;
+  /** folder holding the newspaper page images (events list the ones they use under `images`) */
+  clipDir: string;
   /** data problems with full names: for build/checks.txt, not the page */
   report: string[];
   /** short summary for the console (no names) */
@@ -339,6 +342,18 @@ export function parseGedcom(gedPath: string): ParseResult {
   // ---- build family events ----
   const events: Event[] = [];
   const add = (e: Record<string, unknown>) => events.push(e as unknown as Event);
+
+  // ---- newspaper clippings: <folder of the GEDCOM>/clippings/<Arcanum doc>_p<page>.jpg, matched to the event's Arcanum links ----
+  const clipDir = join(dirname(gedPath), 'clippings');
+  const clipFiles = new Set(existsSync(clipDir) ? readdirSync(clipDir) : []);
+  const clipsFor = (...texts: (string | undefined)[]) => {
+    const out: string[] = [];
+    for (const [, doc, pg] of texts.filter(Boolean).join(' ').matchAll(/adt\.arcanum\.com\/\w+\/view\/([^/?\s]+)\/\S*?[?&]pg=(\d+)/g)) {
+      const f = `${doc}_p${pg}.jpg`;
+      if (clipFiles.has(f) && !out.includes(f)) out.push(f);
+    }
+    return out;
+  };
   for (const p of people.values()) {
     const nm = display(p);
     for (const [k, label] of [['birt', 'Born'], ['deat', 'Died']] as const) {
@@ -380,11 +395,14 @@ export function parseGedcom(gedPath: string): ParseResult {
   }
 
   // ---- facts taken from notes (config "noteEvents"; dated by inference -> plausible, or "cat": "fun" for family stories) ----
+  // "dated": true when the year comes from a source (a newspaper page), not an estimate
   for (const n of CFG.noteEvents ?? []) {
     if (!people.has(n.person)) continue;
     if (hidden(people.get(n.person))) continue; // config text names the person: not published for living people
+    const images = clipsFor(n.link, n.text);
     add({ kind: 'family', cat: n.cat === 'fun' ? 'fun' : 'plausible', type: 'resi', person: n.person,
-      date: { y: n.year, prec: 'est' }, place: n.place ?? null, title: n.title, text: n.text ?? '', raw: null });
+      date: { y: n.year, prec: n.dated ? 'year' : 'est' }, place: n.place ?? null, title: n.title, text: n.text ?? '',
+      ...(n.link ? { link: n.link } : {}), ...(images.length ? { images } : {}), raw: null });
   }
 
   // ---- historical events (config "history"): plausible links (orange), context (blue), fun (magenta) ----
@@ -508,6 +526,7 @@ export function parseGedcom(gedPath: string): ParseResult {
   return {
     data,
     configPath: existsSync(cfgPath) ? cfgPath : null,
+    clipDir,
     report,
     summary: [
       `${people.size} people; events: ${fmtCounts(evCounts)}`,
@@ -516,6 +535,7 @@ export function parseGedcom(gedPath: string): ParseResult {
         + `cause of death ${SETTINGS.causeOfDeath ? 'shown' : 'hidden'}, `
         + `checks ${SETTINGS.checksOnPage ? 'on the page' : 'in build/checks.txt only'}`,
       `${report.length} things to fix: see build/checks.txt`,
+      `clippings: ${new Set(events.flatMap(e => (e as { images?: string[] }).images ?? [])).size} newspaper pages linked`,
     ],
   };
 }

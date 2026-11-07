@@ -17,6 +17,7 @@ import './style.css';
 
 import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
+import { CLIPS, openClip } from './clips';
 import { createGlobe } from './globe';
 import { state, save } from './state';
 import { createTimeline, FIRST_BIRTH } from './timeline';
@@ -49,6 +50,10 @@ const living = {
 }[SET.livingPeople ?? 'full'];
 $('privacy').textContent = ['Email addresses and phone numbers are removed from the notes.', living,
   SET.causeOfDeath ? '' : 'Causes of death are not shown.'].filter(Boolean).join(' ');
+/* ---------- newspaper clippings: header button opens the viewer at the oldest one ---------- */
+const clipBtn = $<HTMLButtonElement>('c-clips');
+if (CLIPS.length) { clipBtn.hidden = false; clipBtn.textContent = `Newspaper clippings (${CLIPS.length})`; clipBtn.onclick = () => openClip(); }
+
 const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-cat]');
 chips.forEach(b => b.setAttribute('aria-pressed', String(state.cats.has(b.dataset.cat as Category))));
 

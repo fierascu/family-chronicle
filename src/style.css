@@ -118,3 +118,19 @@ a{color:var(--accent)}
 .vis-current-time{background:var(--accent)!important}
 .vis-tooltip{background:var(--paper)!important;color:var(--ink)!important;border:1px solid var(--rule)!important;font-family:var(--f-body)!important;border-radius:6px!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* newspaper clippings: thumbnails in event rows + full-screen viewer */
+.clips{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.clip{padding:0;border:1px solid var(--rule);border-radius:4px;background:var(--water);cursor:zoom-in;width:56px;height:76px;overflow:hidden;line-height:0}
+.clip img{width:100%;height:100%;object-fit:cover;object-position:top}
+.lb{border:0;padding:0;margin:0;inset:0;width:100%;height:100%;max-width:none;max-height:none;overflow:hidden;background:#0d1314;color:#e3ece9}
+.lb[open]{display:flex;flex-direction:column}
+.lb::backdrop{background:rgba(0,0,0,.7)}
+.lb-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #2c3b3e}
+.lb-cap{flex:1 1 260px;font-size:.92rem;min-width:0}
+.lb-cap a{color:#8fc3c8}
+.lb-n{color:#97a8a6;font-family:var(--f-data);font-size:.85rem}
+.lb-bar button{font:inherit;font-size:.88rem;border:1px solid #2c3b3e;background:transparent;color:#e3ece9;border-radius:6px;padding:6px 11px;cursor:pointer;min-height:36px}
+.lb-stage{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start}
+.lb-stage img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+.lb.full .lb-stage img{max-width:none;max-height:none;cursor:zoom-out}

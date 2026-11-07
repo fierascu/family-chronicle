@@ -5,8 +5,9 @@
  * Input: the `GEDCOM` variable (shell or .env file) if set, else data/tree.ged if it exists, else the demo.
  * `--mode demo` always uses the demo. The tree and its config are watched, so `npm run dev` reloads on edits.
  * The data problems found in the tree (with full names) go to build/checks.txt, not the page.
+ * Newspaper page images that events link to (<GEDCOM folder>/clippings/) are served in dev and copied to dist/clippings/.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, relative, resolve } from 'node:path';
 import { loadEnv, type Logger, type Plugin } from 'vite';
@@ -50,6 +51,8 @@ export default function familyData(): Plugin {
   let root = process.cwd();
   let gedPath = '';
   let logger: Logger | undefined;
+  /** newspaper page images the events use: file name -> path on disk (filled on load) */
+  let clips = new Map<string, string>();
   return {
     name: 'family-data',
     configResolved(config) {
@@ -71,6 +74,13 @@ export default function familyData(): Plugin {
       };
       server.watcher.on('change', onChange);
       server.watcher.on('add', onChange);
+      // newspaper page images, only the ones an event links to
+      server.middlewares.use('/clippings/', (req, res, next) => {
+        const file = clips.get(decodeURIComponent((req.url ?? '').replace(/^\//, '').split('?')[0]));
+        if (!file) return next();
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.end(readFileSync(file));
+      });
     },
     resolveId(id) {
       return id === VIRTUAL_ID ? RESOLVED_ID : undefined;
@@ -95,7 +105,13 @@ export default function familyData(): Plugin {
 `
         + result.report.map(c => `- ${c}
 `).join(''));
+      clips = new Map(result.data.events.flatMap(e => e.images ?? []).map(f => [f, resolve(result.clipDir, f)]));
       return `export default ${JSON.stringify({ ...result.data, geo: extractGeo() })};`;
+    },
+    generateBundle() {
+      // dist/clippings/: copies of the linked newspaper pages, next to the page (data/ itself is never published)
+      for (const [f, file] of clips) this.emitFile({ type: 'asset', fileName: `clippings/${f}`, source: readFileSync(file) });
+      if (clips.size) logger?.info(`[family-data] copied ${clips.size} newspaper pages to clippings/`);
     },
   };
 }

@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { EV, HISTORY_LABEL, NOW, P, PL, relatives, SURNAMES } from './data';
+import { clipSrc, openClip } from './clips';
 import { visibleEvents } from './globe';
 import { state } from './state';
 import { bcls, CAT_LABEL, fmt, label } from './util';
@@ -39,7 +40,6 @@ function Head({ eyebrow, title, meta }: { eyebrow: ComponentChildren; title: str
 function EvRow({ e, open }: { e: ChronicleEvent; open?: Open }) {
   const yr = e.kind === 'history' ? (e.end && e.end > e.date.y ? `${e.date.y}–${String(e.end).slice(2)}` : e.date.y) : fmt(e.date);
   const pid = open && e.person;
-  const link = e.kind === 'history' && e.link;
   return (
     <li>
       <span class="yr">{yr}</span>
@@ -49,7 +49,16 @@ function EvRow({ e, open }: { e: ChronicleEvent; open?: Open }) {
           {e.title}{e.place && <span class="x"> · {placeLabel(e.place)}</span>}
         </div>
         {e.text && <div class="x">{e.text}</div>}
-        {link && <div class="x"><ReadMore href={link} /></div>}
+        {e.link && <div class="x"><ReadMore href={e.link} /></div>}
+        {e.images?.length ? (
+          <div class="clips">
+            {e.images.map(f => (
+              <button type="button" key={f} class="clip" aria-label={`Open newspaper page ${f}`} onClick={() => openClip(e, f)}>
+                <img loading="lazy" src={clipSrc(f)} alt="" />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </li>
   );
