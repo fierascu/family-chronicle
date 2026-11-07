@@ -14,6 +14,8 @@ const yrs = people.map(p => p.by).filter((y): y is number => !!y);
 /** first year shown: config timelineStart, else the decade before the earliest birth */
 export const T0 = SET.timelineStart || Math.floor((Math.min(...yrs, NOW) - 5) / 10) * 10;
 export const FIRST_BIRTH = Math.min(...yrs);
+/** earliest year the timeline can scroll to: 30 years before T0, or further back for older events (e.g. a 1645 document) */
+const T_MIN = Math.min(T0 - 30, ...EV.map(e => e.date.y - 10));
 
 export function createTimeline(
   el: HTMLElement,
@@ -68,8 +70,8 @@ export function createTimeline(
 
   state.win[0] = T0;
   const tl = new Timeline(el, items, groups, {
-    start: new Date(T0, 0, 1), end: new Date(NOW, 11, 31), min: new Date(T0 - 30, 0, 1), max: new Date(NOW + 5, 0, 1),
-    zoomMin: 1000 * 60 * 60 * 24 * 365 * 3, stack: true, maxHeight: 560, groupOrder: 'order', orientation: { axis: 'top' },
+    start: new Date(T0, 0, 1), end: new Date(NOW, 11, 31), min: new Date(T_MIN, 0, 1), max: new Date(NOW + 5, 0, 1),
+    zoomMin: 1000 * 60 * 60 * 24 * 365 * 3, stack: true, maxHeight: 560, groupOrder: 'order', orientation: { axis: 'top', item: 'top' }, // item 'bottom' (vis default) opens scrolled to the last row, hiding History
     margin: { item: { horizontal: 2, vertical: 4 } }, tooltip: { followMouse: true }, showCurrentTime: false, selectable: true,
   });
   tl.on('rangechanged', ({ start, end }: { start: Date; end: Date }) => {

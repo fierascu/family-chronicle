@@ -81,7 +81,7 @@ export interface SurnameInfo {
   meaning?: string;
   origin?: string;
   variants?: string[];
-  changes?: { when: string; text: string }[];
+  changes?: { when: string; text: string; link?: string }[];
   link?: string;
 }
 

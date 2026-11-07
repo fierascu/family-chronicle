@@ -171,7 +171,7 @@ function SurnameCard({ s, open }: { s: SurnameInfo; open: Open }) {
         <div class="eyebrow">Changes over time</div>
         <ul class="evlist" style={{ marginTop: '6px' }}>
           {(s.changes ?? []).map((c, i) => (
-            <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{c.text}</div></li>
+            <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{c.text}{c.link && <> <ReadMore href={c.link} /></>}</div></li>
           ))}
           {s.spellings.map(x => (
             <li key={x.spelling}>
