@@ -30,9 +30,9 @@ src/                the app in TypeScript (no family data)
   types.ts            shape of the parsed data
   style.css
 scripts/
-  parse_gedcom.py     GEDCOM + config -> build/data.json (the page) and build/checks.txt (data problems, for you)
+  parse-gedcom.ts     GEDCOM + config -> the data the app shows, and build/checks.txt (data problems, for you)
+  family-data-plugin.ts  Vite plugin: picks the tree, parses it, adds the country outlines, hands it to the app
   check_no_family_data.sh  fails if a real tree or config is tracked by git (runs in CI)
-  family-data-plugin.ts  Vite plugin: serves build/data.json and the country outlines to the app
 public/             .htaccess and robots.txt, copied into dist/
 demo/               fictional demo tree, committed
   dummy.ged           2 families, 10 people
@@ -46,7 +46,8 @@ build/, dist/       generated, gitignored
 ## Requirements
 
 - Node.js 20.19+ or 22.12+ (Vite 7 does not run on Node 21 or 22.0–22.11)
-- Python 3.9+ (GEDCOM parser, no extra packages)
+
+That's all: the GEDCOM parser is TypeScript and runs inside Vite, with no extra packages.
 
 ## Quick start (demo)
 
@@ -55,7 +56,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` parses the tree and opens a live-reloading page. Without `data/tree.ged`, it uses the demo tree in `demo/`.
+`npm run dev` parses the tree and opens a live-reloading page. Editing the `.ged` file or its config reloads the page too. Without `data/tree.ged`, it uses the demo tree in `demo/`.
 
 To build the static site and look at it:
 
@@ -81,18 +82,20 @@ npm run build
 |---|---|
 | `npm run dev` / `npm run build` | parse `data/tree.ged` if it exists, else `demo/dummy.ged`; then serve / build |
 | `npm run dev:demo` / `npm run build:demo` | same, always with `demo/dummy.ged` |
-| `python scripts/parse_gedcom.py path/to/x.ged` then `npx vite build` | any file; config read from `path/to/x.config.json` |
+| `GEDCOM=path/to/x.ged npm run build` | any file; config read from `path/to/x.config.json` |
 | `npm run preview` | serve the built `dist/` locally |
 | `npm run typecheck` | TypeScript check of the app and build scripts |
 
-The parser prints which input and config it used.
+The parser prints which input and config it used, a summary of what it found and the privacy settings applied. The data checks, with full names, go to `build/checks.txt`.
+
+`GEDCOM` can also go in a `.env.local` file (`GEDCOM=path/to/x.ged`), which works the same on Windows. A relative path is read from the project folder.
 
 ## How it works
 
 | Step | File | Output |
 |---|---|---|
-| Parse GEDCOM + config: normalise dates and places, estimate missing years, assign branches, add history events, apply the privacy rules, run data checks | `scripts/parse_gedcom.py` | `build/data.json`, `build/checks.txt` |
-| Add the outlines of Romania and its neighbours, cut from Natural Earth (`world-atlas`), and hand everything to the app as `virtual:family-data` | `scripts/family-data-plugin.ts` | (in the bundle) |
+| Parse GEDCOM + config: normalise dates and places, estimate missing years, assign branches, add history events, apply the privacy rules, run data checks | `scripts/parse-gedcom.ts` | (in memory), `build/checks.txt` |
+| Pick the tree, run the parser, add the outlines of Romania and its neighbours, cut from Natural Earth (`world-atlas`), and hand everything to the app as `virtual:family-data` | `scripts/family-data-plugin.ts` | (in the bundle) |
 | Bundle the app, libraries, fonts and world maps; compile the Preact JSX (`@preact/preset-vite`) | Vite | `dist/` |
 
 Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), [Preact](https://preactjs.com/) (the record card), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
@@ -108,6 +111,8 @@ Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D
 | `d3` | 7.9.0 | globe projection, pins and migration lines |
 | `topojson-client`, `world-atlas` | 3.1.0, 2.0.2 | country and land outlines |
 | `typescript` | 5.9.3 | type check only; Vite strips types when it builds |
+
+The GEDCOM parser uses no library. Reading GEDCOM lines into a tree takes about 20 lines; the rest (dates, places, estimates, branches, checks) is specific to this project. It shares its output types with the app (`src/types.ts`), so `npm run typecheck` catches a mismatch between the two.
 
 Only the record card uses Preact. The timeline and globe draw through vis-timeline and D3, so they stay plain TypeScript. JSX is set up in `tsconfig.json` (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`).
 
@@ -164,7 +169,7 @@ Upload the contents of `dist/` (including the hidden `.htaccess`). Asset URLs ar
 
 ## Privacy
 
-Everything in `build/data.json` ends up in the page's JavaScript, readable by anyone who can open the page, even fields the page doesn't display. So the parser decides what gets in.
+Everything the parser outputs for the page ends up in the page's JavaScript, readable by anyone who can open the page, even fields the page doesn't display. So the parser decides what gets in.
 
 **Always:**
 - Email addresses and long numbers (phone numbers, personal ID numbers such as the CNP) are removed from notes, occupations and education.

@@ -1,4 +1,4 @@
-/** Shape of build/data.json (written by scripts/parse_gedcom.py) plus `geo` (added by the Vite plugin). */
+/** Shape of the parsed tree (scripts/parse-gedcom.ts) plus `geo` (added by the Vite plugin, scripts/family-data-plugin.ts). */
 
 export type Category = 'sure' | 'plausible' | 'context' | 'fun';
 
@@ -56,7 +56,6 @@ export interface FamilyEvent extends EventBase {
   kind: 'family';
   person: string;
   partner?: string;
-  raw: string | null;
 }
 
 export interface HistoryEvent extends EventBase {
