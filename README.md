@@ -4,11 +4,13 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 
 - One timeline row per family branch, plus a history row
 - Lifespans as bars; hatched when a date is estimated
-- Three event categories, shown by colour and shape:
+- Four event categories, shown by colour and shape:
   - **Sure** (green circle): dated facts from the tree
   - **Plausible** (orange diamond): estimated dates, or history that likely touched a named relative
   - **Context** (blue square): history of the time and place, no claimed personal link
+  - **Fun** (magenta star): family stories, firsts and curiosities
 - The map shows only events in the years visible on the timeline, with migration lines between a person's places
+- A "Family names" section: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
 
 ## Project layout
@@ -118,8 +120,9 @@ The code holds no family data. Everything specific to one tree goes in `<name>.c
 | `places` | Place key → `label`, `lat`, `lon`, `approx` (approximate pin) |
 | `placeRules` | `{contains, place}`: map messy place strings to a place key (`"Lisabona"` → `"Lisbon"`) |
 | `branches` | Surname → branch name. Order sets branch colours |
-| `noteEvents` | Facts from free-text notes: `person`, `year`, `place`, `title`, `text` (shown as plausible) |
-| `history` | Historical events: `cat` (`plausible` or `context`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
+| `noteEvents` | Facts from free-text notes: `person`, `year`, `place`, `title`, `text`, optional `cat: "fun"` (shown as plausible, or as fun) |
+| `history` | Historical events: `cat` (`plausible`, `context` or `fun`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
+| `surnames` | Family name → `meaning`, `origin`, `variants` (other spellings, also matched in the tree), `changes` (`when`, `text`), `link` |
 | `placeNotes` | Extra "things to fix" lines: `text`, shown when a raw place contains all strings in `rawPlaceContains` |
 
 Example:

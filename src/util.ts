@@ -1,7 +1,7 @@
 import { BRANCHES } from './data';
 import type { Category, DateValue, Person } from './types';
 
-export const CAT_LABEL: Record<Category, string> = { sure: 'Sure', plausible: 'Plausible', context: 'Context' };
+export const CAT_LABEL: Record<Category, string> = { sure: 'Sure', plausible: 'Plausible', context: 'Context', fun: 'Fun' };
 
 const PALETTE = 10; // --br0…--br9 in CSS
 /** CSS class for a branch colour: 'Other' is grey, branches 0-9 use the palette, 10+ get a generated hue */

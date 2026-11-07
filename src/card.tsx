@@ -1,18 +1,24 @@
 import { render } from 'preact';
 import type { ComponentChildren } from 'preact';
-import { EV, HISTORY_LABEL, NOW, P, PL, relatives } from './data';
+import { EV, HISTORY_LABEL, NOW, P, PL, relatives, SURNAMES } from './data';
 import { visibleEvents } from './globe';
 import { state } from './state';
 import { bcls, CAT_LABEL, fmt, label } from './util';
-import type { ChronicleEvent, HistoryEvent } from './types';
+import type { ChronicleEvent, HistoryEvent, SurnameInfo } from './types';
 
 export interface CardView {
   showPerson(id: string): void;
   showEvent(id: string): void;
   showPlace(key: string): void;
+  showSurname(name: string): void;
 }
 
 type Open = (personId: string) => void;
+type OpenName = (name: string) => void;
+
+/** the family-name entries a person belongs to (birth name first, then married name) */
+const surnamesOf = (id: string) => SURNAMES.filter(s => s.people.includes(id))
+  .sort((a, b) => Number(b.spellings.some(x => x.spelling === P[id].surname)) - Number(a.spellings.some(x => x.spelling === P[id].surname)));
 
 const placeLabel = (k: string) => PL[k]?.label || k;
 
@@ -63,7 +69,7 @@ function Relatives({ title, ids, open }: { title: string; ids: (string | undefin
   );
 }
 
-function PersonCard({ id, open }: { id: string; open: Open }) {
+function PersonCard({ id, open, openName }: { id: string; open: Open; openName: OpenName }) {
   const p = P[id];
   const own = EV.filter(e => e.kind === 'family' && (e.person === id || e.partner === id));
   const hist = EV.filter(e => e.kind === 'history' && e.people.includes(id));
@@ -92,6 +98,14 @@ function PersonCard({ id, open }: { id: string; open: Open }) {
           {life} context events fall within this lifetime. They show on the {HISTORY_LABEL} row of the timeline.
         </p>
       )}
+      {surnamesOf(id).length > 0 && (
+        <div>
+          <div class="eyebrow">About the family name</div>
+          <div class="rel" style={{ marginTop: '5px' }}>
+            {surnamesOf(id).map(s => <button key={s.name} onClick={() => openName(s.name)}>{s.name}{s.meaning ? ` · ${s.meaning}` : ''}</button>)}
+          </div>
+        </div>
+      )}
       <Relatives title="Parents" ids={f.parents} open={open} />
       <Relatives title="Spouses" ids={f.spouses} open={open} />
       <Relatives title="Children" ids={f.kids} open={open} />
@@ -104,13 +118,65 @@ function EventCard({ e, open }: { e: HistoryEvent; open: Open }) {
   return (
     <>
       <Head
-        eyebrow={`${CAT_LABEL[e.cat]} · history`}
+        eyebrow={`${CAT_LABEL[e.cat]} · ${e.cat === 'fun' ? 'family story' : 'history'}`}
         title={e.title}
         meta={`${e.date.y}${e.end ? '–' + e.end : ''}${e.place ? ' · ' + placeLabel(e.place) : ''}`}
       />
       <p style={{ margin: 0 }}>{e.text}</p>
       {e.link && <ReadMore href={e.link} />}
-      <Relatives title="Relatives this may concern" ids={e.people} open={open} />
+      <Relatives title={e.cat === 'fun' ? 'Relatives in this story' : 'Relatives this may concern'} ids={e.people} open={open} />
+    </>
+  );
+}
+
+function SurnameCard({ s, open }: { s: SurnameInfo; open: Open }) {
+  const years = s.people.map(id => P[id].by).filter((y): y is number => !!y);
+  const variants = [...new Set([...(s.variants ?? []), ...s.spellings.map(x => x.spelling)])].filter(v => v !== s.name);
+  const described = s.meaning || s.origin || s.changes?.length;
+  return (
+    <>
+      <Head
+        eyebrow="Family name"
+        title={s.name}
+        meta={`${s.people.length} ${s.people.length === 1 ? 'person' : 'people'} in the tree${years.length ? ` · born ${Math.min(...years)}–${Math.max(...years)}` : ''}`}
+      />
+      {s.meaning && (
+        <div>
+          <div class="eyebrow">What the name suggests</div>
+          <p style={{ margin: '4px 0 0' }}>{s.meaning}</p>
+        </div>
+      )}
+      {s.origin && (
+        <div>
+          <div class="eyebrow">Origins</div>
+          <p style={{ margin: '4px 0 0' }}>{s.origin}</p>
+        </div>
+      )}
+      {variants.length > 0 && (
+        <div>
+          <div class="eyebrow">Variations</div>
+          <p style={{ margin: '4px 0 0' }}>{variants.join(' · ')}</p>
+        </div>
+      )}
+      <div>
+        <div class="eyebrow">Changes over time</div>
+        <ul class="evlist" style={{ marginTop: '6px' }}>
+          {(s.changes ?? []).map((c, i) => (
+            <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{c.text}</div></li>
+          ))}
+          {s.spellings.map(x => (
+            <li key={x.spelling}>
+              <span class="yr">{x.from ? `from ${x.from}` : '?'}</span><span />
+              <div class="x">Spelled <b>{x.spelling}</b> in this tree ({s.people.filter(id => P[id].surname === x.spelling || P[id].married === x.spelling).length})</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {!described && (
+        <p class="hint" style={{ margin: 0 }}>Nothing written about this name yet. Add it under <code>surnames</code> in the config file.</p>
+      )}
+      {s.link && <ReadMore href={s.link} />}
+      <Relatives title="People with this name" ids={s.people} open={open} />
     </>
   );
 }
@@ -139,7 +205,7 @@ export function createCard(
 
   function showPerson(id: string) {
     state.sel = id;
-    render(<PersonCard key={id} id={id} open={open} />, card);
+    render(<PersonCard key={id} id={id} open={open} openName={showSurname} />, card);
     on.changed();
   }
 
@@ -156,5 +222,11 @@ export function createCard(
     render(<PlaceCard key={k} k={k} open={open} />, card);
   }
 
-  return { showPerson, showEvent, showPlace };
+  function showSurname(name: string) {
+    const s = SURNAMES.find(x => x.name === name);
+    if (!s) return;
+    render(<SurnameCard key={'n' + name} s={s} open={open} />, card);
+  }
+
+  return { showPerson, showEvent, showPlace, showSurname };
 }

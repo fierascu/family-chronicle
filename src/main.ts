@@ -15,7 +15,7 @@ import '@fontsource/ibm-plex-mono/latin-500.css';
 import '@fontsource/ibm-plex-mono/latin-ext-500.css';
 import './style.css';
 
-import { BRANCHES, CHECKS, EV, NOW, SET, people } from './data';
+import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
 import { createGlobe } from './globe';
 import { state, save } from './state';
@@ -77,6 +77,16 @@ $<HTMLInputElement>('q').addEventListener('change', ev => {
   card.showPerson(p.id);
   timeline.focusPerson(p.id);
 });
+
+/* ---------- family names ---------- */
+const snBox = $('surnames');
+for (const s of SURNAMES) {
+  const b = document.createElement('button');
+  b.textContent = `${s.name} (${s.people.length})`;
+  b.onclick = () => { card.showSurname(s.name); $('card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+  snBox.append(b);
+}
+if (!SURNAMES.length) snBox.innerHTML = '<span class="hint">No family names in the tree.</span>';
 
 globe.drawPins();
 // opening event: config startEvent (title prefix), else the first plausible history event, else the first event
