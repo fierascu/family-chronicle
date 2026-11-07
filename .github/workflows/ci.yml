@@ -21,9 +21,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
 
       - run: npm ci
       - run: npm run typecheck
@@ -32,7 +29,7 @@ jobs:
       # Corina and Dan Marin are the demo's living people: their names, notes and story must not reach the page
       - name: Living people are not published
         run: |
-          if grep -rlE "Corina|Dan Marin|Dacia|Engineer" build/data.json dist/assets; then
+          if grep -rlE "Corina|Dan Marin|Dacia|Engineer" dist/assets; then
             echo "A living demo person's details are in the build output." >&2
             exit 1
           fi

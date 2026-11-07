@@ -8,12 +8,10 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "parse": "python scripts/parse_gedcom.py",
-    "parse:demo": "python scripts/parse_gedcom.py demo/dummy.ged",
-    "dev": "npm run parse && vite",
-    "dev:demo": "npm run parse:demo && vite",
-    "build": "npm run parse && vite build",
-    "build:demo": "npm run parse:demo && vite build",
+    "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },

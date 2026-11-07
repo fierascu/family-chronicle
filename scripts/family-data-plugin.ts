@@ -1,12 +1,16 @@
 /**
- * Vite plugin: serves `virtual:family-data` = build/data.json (written by parse_gedcom.py)
+ * Vite plugin: serves `virtual:family-data` = the parsed GEDCOM tree (parse-gedcom.ts)
  * plus `geo`, the outlines of the home country and its neighbours cut from Natural Earth (world-atlas).
- * Replaces the old extract_map.js + build.py steps.
+ *
+ * Input: the `GEDCOM` variable (shell or .env file) if set, else data/tree.ged if it exists, else the demo.
+ * `--mode demo` always uses the demo. The tree and its config are watched, so `npm run dev` reloads on edits.
+ * The data problems found in the tree (with full names) go to build/checks.txt, not the page.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
-import type { Plugin } from 'vite';
+import { basename, relative, resolve } from 'node:path';
+import { loadEnv, type Logger, type Plugin } from 'vite';
+import { configPathFor, parseGedcom } from './parse-gedcom';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { MultiPolygon, Polygon, Position } from 'geojson';
@@ -43,18 +47,55 @@ function extractGeo() {
 }
 
 export default function familyData(): Plugin {
-  const dataPath = resolve('build', 'data.json');
+  let root = process.cwd();
+  let gedPath = '';
+  let logger: Logger | undefined;
   return {
     name: 'family-data',
+    configResolved(config) {
+      root = config.root;
+      logger = config.logger;
+      const real = resolve(root, 'data', 'tree.ged'), demo = resolve(root, 'demo', 'dummy.ged');
+      const env = loadEnv(config.mode, root, 'GEDCOM').GEDCOM;
+      gedPath = config.mode === 'demo' ? demo : env ? resolve(root, env) : existsSync(real) ? real : demo;
+    },
+    configureServer(server) {
+      // re-parse and reload the page when the tree or its config changes (also outside the project folder)
+      const watched = [gedPath, configPathFor(gedPath)];
+      server.watcher.add(watched);
+      const onChange = (file: string) => {
+        if (!watched.includes(resolve(file))) return;
+        const mod = server.moduleGraph.getModuleById(RESOLVED_ID);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+        server.ws.send({ type: 'full-reload' });
+      };
+      server.watcher.on('change', onChange);
+      server.watcher.on('add', onChange);
+    },
     resolveId(id) {
       return id === VIRTUAL_ID ? RESOLVED_ID : undefined;
     },
     load(id) {
       if (id !== RESOLVED_ID) return;
-      if (!existsSync(dataPath)) this.error(`${dataPath} not found. Run "npm run parse" (or "npm run parse:demo") first.`);
-      this.addWatchFile(dataPath);
-      const data = JSON.parse(readFileSync(dataPath, 'utf-8'));
-      return `export default ${JSON.stringify({ ...data, geo: extractGeo() })};`;
+      if (!existsSync(gedPath)) this.error(`GEDCOM file not found: ${gedPath}`);
+      let result;
+      try {
+        result = parseGedcom(gedPath);
+      } catch (e) {
+        this.error(`${relative(root, gedPath)}: ${(e as Error).message}`);
+      }
+      const rel = (p: string) => relative(root, p);
+      const log = (line: string) => logger?.info(`[family-data] ${line}`);
+      log(`input: ${rel(gedPath)} | config: ${result.configPath ? rel(result.configPath) : 'none'}`);
+      result.summary.forEach(log);
+      const build = resolve(root, 'build');
+      mkdirSync(build, { recursive: true });
+      writeFileSync(resolve(build, 'checks.txt'), `Things to fix in ${basename(gedPath)} (full names; not part of the page)
+
+`
+        + result.report.map(c => `- ${c}
+`).join(''));
+      return `export default ${JSON.stringify({ ...result.data, geo: extractGeo() })};`;
     },
   };
 }
