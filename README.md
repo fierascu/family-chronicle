@@ -44,7 +44,7 @@ build/, dist/       generated, gitignored
 
 ## Requirements
 
-- Node.js 20.19+ or 22.12+ (Vite 7 does not run on Node 21 or 22.0–22.11)
+- Node.js 20.19+ or 22.12+ (Vite 7 does not run on Node 21 or 22.0â€“22.11)
 - Python 3.9+ (GEDCOM parser, no extra packages)
 
 ## Quick start (demo)
@@ -101,7 +101,7 @@ Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D
 | Package | Version | Used for |
 |---|---|---|
 | `vite` | ^7.3.7 | dev server and build; needs Node `^20.19.0 \|\| >=22.12.0` |
-| `@preact/preset-vite` | 2.10.6 | JSX compile and hot reload for Preact; supports Vite 2–8 |
+| `@preact/preset-vite` | 2.10.6 | JSX compile and hot reload for Preact; supports Vite 2â€“8 |
 | `preact` | 11.2.0 | record card (`src/card.tsx`) |
 | `vis-timeline` | ^7.7.4 | timeline; the `standalone` build is used, so its peer packages are bundled in |
 | `d3` | 7.9.0 | globe projection, pins and migration lines |
