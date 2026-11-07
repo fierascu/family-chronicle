@@ -2,6 +2,10 @@
 
 Turns a GEDCOM family tree export into a single HTML page with a zoomable timeline and a linked globe map.
 
+![Family Chronicle showing the fictional demo tree: timeline of two family branches with history events, globe map and an open record card](docs/demo-screenshot.png)
+
+*The demo tree (`npm run dev:demo`).*
+
 - One timeline row per family branch, plus a history row
 - Lifespans as bars; hatched when a date is estimated
 - Four event categories, shown by colour and shape:
