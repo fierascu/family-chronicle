@@ -19,7 +19,7 @@ src/                the app in TypeScript (no family data)
   main.ts             start-up: header, filters, search
   timeline.ts         vis-timeline rows and items
   globe.ts            D3 globe: canvas background, pins, migration lines
-  card.ts             record card (person, event, place)
+  card.tsx            record card (Preact) (person, event, place)
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
   style.css
@@ -38,7 +38,7 @@ build/, dist/       generated, gitignored
 
 ## Requirements
 
-- Node.js 20.19+ (Vite build)
+- Node.js 20.19+ or 22.12+ (Vite 7 does not run on Node 21 or 22.0–22.11)
 - Python 3.9+ (GEDCOM parser, no extra packages)
 
 ## Quick start (demo)
@@ -86,9 +86,23 @@ The parser prints which input and config it used.
 |---|---|---|
 | Parse GEDCOM + config: normalise dates and places, estimate missing years, assign branches, add history events, run data checks | `scripts/parse_gedcom.py` | `build/data.json` |
 | Add the outlines of Romania and its neighbours, cut from Natural Earth (`world-atlas`), and hand everything to the app as `virtual:family-data` | `scripts/family-data-plugin.ts` | (in the bundle) |
-| Bundle the app, libraries, fonts and world maps | Vite | `dist/` |
+| Bundle the app, libraries, fonts and world maps; compile the Preact JSX (`@preact/preset-vite`) | Vite | `dist/` |
 
-Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
+Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D3](https://d3js.org/), [Preact](https://preactjs.com/) (the record card), the fonts (Fontsource) and the world maps. The page makes no requests to other sites, so it works offline and leaks nothing to CDNs. The detailed world maps are separate files, loaded only when you zoom in on the globe.
+
+## Libraries
+
+| Package | Version | Used for |
+|---|---|---|
+| `vite` | ^7.3.7 | dev server and build; needs Node `^20.19.0 \|\| >=22.12.0` |
+| `@preact/preset-vite` | 2.10.6 | JSX compile and hot reload for Preact; supports Vite 2–8 |
+| `preact` | 11.2.0 | record card (`src/card.tsx`) |
+| `vis-timeline` | ^7.7.4 | timeline; the `standalone` build is used, so its peer packages are bundled in |
+| `d3` | 7.9.0 | globe projection, pins and migration lines |
+| `topojson-client`, `world-atlas` | 3.1.0, 2.0.2 | country and land outlines |
+| `typescript` | 5.9.3 | type check only; Vite strips types when it builds |
+
+Only the record card uses Preact. The timeline and globe draw through vis-timeline and D3, so they stay plain TypeScript. JSX is set up in `tsconfig.json` (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`).
 
 ## Configuration
 
