@@ -4,7 +4,8 @@
  */
 import { EV, P } from './data';
 import type { ChronicleEvent } from './types';
-import { label } from './util';
+import { evTitle, L } from './i18n';
+import { esc, label } from './util';
 
 /** every (image, event) pair, oldest first; one page can back more than one event */
 export const CLIPS: { f: string; e: ChronicleEvent }[] = EV
@@ -19,15 +20,15 @@ let at = 0;
 function build() {
   const d = document.createElement('dialog');
   d.className = 'lb';
-  d.setAttribute('aria-label', 'Newspaper clipping');
+  d.setAttribute('aria-label', L.clip.dialog);
   d.innerHTML = `<div class="lb-bar">
       <div class="lb-cap"></div>
-      <button type="button" data-go="-1" aria-label="Previous clipping">‹ Prev</button>
+      <button type="button" data-go="-1" aria-label="${esc(L.clip.prev)}">${esc(L.clip.prevBtn)}</button>
       <span class="lb-n meta"></span>
-      <button type="button" data-go="1" aria-label="Next clipping">Next ›</button>
-      <button type="button" data-close aria-label="Close">Close ✕</button>
+      <button type="button" data-go="1" aria-label="${esc(L.clip.next)}">${esc(L.clip.nextBtn)}</button>
+      <button type="button" data-close aria-label="${esc(L.clip.close)}">${esc(L.clip.closeBtn)}</button>
     </div>
-    <div class="lb-stage"><img alt="" title="Click to switch between fit and full size"></div>`;
+    <div class="lb-stage"><img alt="" title="${esc(L.clip.fit)}"></div>`;
   d.addEventListener('click', ev => {
     const t = ev.target as HTMLElement;
     if (t.closest('[data-close]')) d.close();
@@ -50,20 +51,25 @@ function show(i: number) {
   const who = e.person && P[e.person] ? label(P[e.person]) : '';
   const img = d.querySelector('img')!;
   img.src = clipSrc(f);
-  img.alt = e.title;
+  img.alt = evTitle(e);
   const cap = d.querySelector('.lb-cap')!;
   cap.replaceChildren();
   const b = document.createElement('b');
-  b.textContent = e.title;
+  b.textContent = evTitle(e);
   cap.append(b, document.createElement('br'), [who, e.date.y].filter(Boolean).join(' · '));
   if (e.link) {
     const a = document.createElement('a');
-    a.href = e.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open in Arcanum ↗';
+    a.href = e.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = L.clip.arcanum;
     cap.append(' · ', a);
   }
   d.querySelector('.lb-n')!.textContent = `${at + 1} / ${CLIPS.length}`;
   d.classList.remove('full');
   d.querySelector('.lb-stage')!.scrollTo(0, 0);
+}
+
+/** after a language change: the viewer is built again, in the new language, the next time it opens */
+export function resetClips() {
+  if (dlg && !dlg.open) { dlg.remove(); dlg = null; }
 }
 
 /** open the viewer at the clipping for this event and image (or the first one) */

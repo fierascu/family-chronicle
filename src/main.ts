@@ -17,20 +17,40 @@ import './style.css';
 
 import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
-import { CLIPS, openClip } from './clips';
+import { CLIPS, openClip, resetClips } from './clips';
 import { createEventList } from './events';
 import { createGlobe } from './globe';
+import { L, lang, LANG_NAME, LANGS, setLang } from './i18n';
+import type { Lang } from './i18n';
 import { treeAbout } from './sources';
 import { state, save } from './state';
 import { createTimeline, FIRST_BIRTH } from './timeline';
 import type { Category } from './types';
-import { $, bcls, esc, injectBranchStyles, label } from './util';
+import { $, bcls, branchName, esc, injectBranchStyles, label } from './util';
 
 injectBranchStyles();
 
-/* ---------- header ---------- */
-$('stats').innerHTML = `<b>${people.length}</b> people · <b>${BRANCHES.filter(b => b !== 'Other').length}</b> branches · `
-  + `<b>${FIRST_BIRTH}–${NOW}</b> · <b>${EV.length}</b> events`;
+/* ---------- the page's own words, in the chosen language (see index.html data-i18n) ---------- */
+const word = (path: string) => {
+  const v = path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], L);
+  return typeof v === 'string' ? v : path;
+};
+function translatePage() {
+  document.title = L.title;
+  document.querySelectorAll<HTMLElement>('[data-i18n]').forEach(el => { el.textContent = word(el.dataset.i18n!); });
+  document.querySelectorAll<HTMLElement>('[data-i18n-attr]').forEach(el => {
+    for (const pair of el.dataset.i18nAttr!.split(';')) {
+      const [attr, path] = pair.split(':').map(s => s.trim());
+      el.setAttribute(attr, word(path));
+    }
+  });
+  $('stats').innerHTML = L.stats(people.length, BRANCHES.filter(b => b !== 'Other').length, `${FIRST_BIRTH}–${NOW}`, EV.length);
+  [...branchSel.options].slice(1).forEach(o => { o.text = branchName(o.value); });
+  $('privacy').textContent = [L.pEmails, L.pLiving[SET.livingPeople ?? 'full'],
+    SET.causeOfDeath ? '' : L.pCauses, L.pFile(treeAbout())].filter(Boolean).join(' ');
+  if (CLIPS.length) clipBtn.textContent = L.clips(CLIPS.length);
+  if (!SURNAMES.length) $('surnames').innerHTML = `<span class="hint">${esc(L.noNames)}</span>`;
+}
 
 const branchSel = $<HTMLSelectElement>('branch');
 BRANCHES.forEach(b => branchSel.add(new Option(b, b)));
@@ -44,18 +64,12 @@ $('names').innerHTML = people.filter(p => p.given && p.given !== '?').map(p => `
 $('checks').innerHTML = CHECKS.map(c => `<li>${esc(c)}</li>`).join('');
 $('checks-panel').hidden = !CHECKS.length; // the list is only on the page with settings.checksOnPage
 
-/* ---------- privacy note: says what this build left out ---------- */
-const living = {
-  initials: 'People who may be living are shown by their initials, with their birth year only: no places, notes or exact marriage dates.',
-  hidden: 'People who may be living are shown as "Living person", with their birth year only: no places, notes or exact marriage dates.',
-  full: 'People who may be living are shown by name, with their birth year only. Share this page only behind a password.',
-}[SET.livingPeople ?? 'full'];
-$('privacy').textContent = ['Email addresses and phone numbers are removed from the notes.', living,
-  SET.causeOfDeath ? '' : 'Causes of death are not shown.',
-  `${treeAbout()}; the file itself is not published.`].filter(Boolean).join(' ');
 /* ---------- newspaper clippings: header button opens the viewer at the oldest one ---------- */
 const clipBtn = $<HTMLButtonElement>('c-clips');
-if (CLIPS.length) { clipBtn.hidden = false; clipBtn.textContent = `Newspaper clippings (${CLIPS.length})`; clipBtn.onclick = () => openClip(); }
+if (CLIPS.length) { clipBtn.hidden = false; clipBtn.onclick = () => openClip(); }
+
+// the privacy note (in translatePage) says what this build left out
+translatePage();
 
 const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-cat]');
 chips.forEach(b => b.setAttribute('aria-pressed', String(state.cats.has(b.dataset.cat as Category))));
@@ -163,7 +177,21 @@ for (const s of SURNAMES) {
   b.onclick = () => { card.showSurname(s.name); reveal(); };
   snBox.append(b);
 }
-if (!SURNAMES.length) snBox.innerHTML = '<span class="hint">No family names in the tree.</span>';
+if (!SURNAMES.length) snBox.innerHTML = `<span class="hint">${esc(L.noNames)}</span>`;
+
+/* ---------- language: everything the page writes itself is drawn again ---------- */
+const langSel = $<HTMLSelectElement>('lang');
+LANGS.forEach(l => langSel.add(new Option(LANG_NAME[l], l)));
+langSel.value = lang;
+langSel.onchange = () => {
+  setLang(langSel.value as Lang);
+  translatePage();
+  resetClips();
+  card.refresh();
+  timeline.rebuild();
+  events.rebuild();
+  globe.drawPins();
+};
 
 globe.drawPins();
 // opening event: config startEvent (title prefix), else the first plausible history event, else the first event
