@@ -18,6 +18,7 @@ import './style.css';
 import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
 import { CLIPS, openClip } from './clips';
+import { createEventList } from './events';
 import { createGlobe } from './globe';
 import { state, save } from './state';
 import { createTimeline, FIRST_BIRTH } from './timeline';
@@ -71,9 +72,17 @@ const timeline = createTimeline($('tl'), {
   event: id => card.showEvent(id),
   range: () => globe.drawPins(),
 });
+const events = createEventList($('events'), {
+  event: id => {
+    card.showEvent(id);
+    const ev = EV.find(e => e.id === id);
+    if (ev?.kind === 'family') timeline.focusPerson(ev.person);
+    $('card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+});
 
 /* ---------- controls ---------- */
-const refresh = () => { save(); timeline.rebuild(); globe.drawPins(); };
+const refresh = () => { save(); timeline.rebuild(); globe.drawPins(); events.rebuild(); };
 chips.forEach(b => b.onclick = () => {
   const c = b.dataset.cat as Category;
   if (state.cats.has(c)) state.cats.delete(c); else state.cats.add(c);
@@ -87,7 +96,7 @@ $<HTMLInputElement>('q').addEventListener('change', ev => {
   const p = people.find(p => label(p).toLowerCase() === v) || people.find(p => label(p).toLowerCase().includes(v));
   if (!p) return;
   if (state.branch && p.branch !== state.branch) {
-    state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild();
+    state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild(); events.rebuild();
   }
   card.showPerson(p.id);
   timeline.focusPerson(p.id);

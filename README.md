@@ -13,6 +13,7 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
   - **Plausible** (orange diamond): estimated dates, or history that likely touched a named relative
   - **Context** (blue square): history of the time and place, no claimed personal link
   - **Fun** (magenta star): family stories, firsts and curiosities
+- An events list under the timeline: sortable by date, filtered by name, place or year (diacritics optional), and by the same category and branch filters; a row opens its record
 - The map shows only events in the years visible on the timeline, with migration lines between a person's places
 - A "Family names" section: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
@@ -26,6 +27,7 @@ src/                the app in TypeScript (no family data)
   timeline.ts         vis-timeline rows and items
   globe.ts            D3 globe: canvas background, pins, migration lines
   card.tsx            record card (Preact) (person, event, place)
+  events.tsx          events list (Preact): sort, text filter
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
   style.css
