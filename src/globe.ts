@@ -21,6 +21,7 @@ type CountriesTopo = Topology<{ countries: GeometryCollection }>;
 
 const W = 480, H = 480;
 const SCALE_MIN = 80, SCALE_MAX = 8000;
+const START_SCALE = 2200; // Romania fills the view
 const rank: Record<Category, number> = { sure: 3, plausible: 2, context: 1, fun: 0 };
 
 interface PinRow { k: string; evs: ChronicleEvent[]; cat: Category }
@@ -45,8 +46,8 @@ export function createGlobe(
   on: { place(key: string): void },
 ): GlobeView {
   const svg = d3.select(svgEl).attr('viewBox', `0 0 ${W} ${H}`);
-  // Orthographic projection centred on Romania [25°E, 46°N]
-  const proj = d3.geoOrthographic().scale(220).translate([W / 2, H / 2]).clipAngle(90).rotate([-25, -46, 0]);
+  // Orthographic projection centred and zoomed on Romania [25°E, 46°N]
+  const proj = d3.geoOrthographic().scale(START_SCALE).translate([W / 2, H / 2]).clipAngle(90).rotate([-25, -46, 0]);
   // SVG path generator for pins/arcs only (lightweight: no large topologies)
   const path = d3.geoPath(proj);
   const xy = (k: string) => proj([PL[k].lon, PL[k].lat])!;
@@ -155,6 +156,7 @@ export function createGlobe(
   }
   refreshColours();
   showLand(land110Url, 0);
+  applyDetailLevel(zoomLevel(START_SCALE));
 
   /* ---- SVG overlay: migration lines, pins, labels ---- */
   const migG = svg.append('g'), pinG = svg.append('g'), lblG = svg.append('g');
@@ -189,8 +191,8 @@ export function createGlobe(
       .attr('cx', d => xy(d.k)[0]).attr('cy', d => xy(d.k)[1]).attr('r', radius)
       .attr('display', d => (onFront(d.k) ? null : 'none'))
       .attr('tabindex', 0).attr('role', 'button').attr('aria-label', d => `${PL[d.k].label}, ${d.evs.length} events`)
-      .on('click', (_ev, d) => { stopSpin(); on.place(d.k); })
-      .on('keydown', (ev: KeyboardEvent, d) => { if (ev.key === 'Enter') { stopSpin(); on.place(d.k); } })
+      .on('click', (_ev, d) => { on.place(d.k); })
+      .on('keydown', (ev: KeyboardEvent, d) => { if (ev.key === 'Enter') { on.place(d.k); } })
       .selectAll('title').data(d => [d]).join('title')
       .text(d => `${PL[d.k].label} — ${d.evs.length} event${d.evs.length > 1 ? 's' : ''}`);
 
@@ -226,27 +228,10 @@ export function createGlobe(
     migG.selectAll<SVGPathElement, Segment>('path').attr('d', segPath);
   }
 
-  /* ---- spin, drag, zoom ---- */
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let spinning = !reducedMotion.matches, resumeTimer: ReturnType<typeof setTimeout> | undefined, last = 0;
-  function stopSpin() {
-    spinning = false;
-    clearTimeout(resumeTimer);
-    resumeTimer = setTimeout(() => { spinning = !reducedMotion.matches; }, 4000);
-  }
-  d3.timer(elapsed => {
-    const delta = elapsed - last;
-    last = elapsed;
-    if (!spinning) return;
-    const r = proj.rotate();
-    proj.rotate([r[0] + delta * 0.008, r[1], r[2]]);
-    paintCanvas();
-    redrawPins();
-  });
-
+  /* ---- drag, zoom (no auto-rotation) ---- */
   let dragStart: { rotate: [number, number, number]; x: number; y: number } | null = null;
   svg.call(d3.drag<SVGSVGElement, unknown>()
-    .on('start', ev => { stopSpin(); dragStart = { rotate: proj.rotate(), x: ev.x, y: ev.y }; })
+    .on('start', ev => { dragStart = { rotate: proj.rotate(), x: ev.x, y: ev.y }; })
     .on('drag', ev => {
       if (!dragStart) return;
       const k = 90 / proj.scale();
@@ -259,7 +244,6 @@ export function createGlobe(
 
   svgEl.addEventListener('wheel', ev => {
     ev.preventDefault();
-    stopSpin();
     const scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, proj.scale() * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
     proj.scale(scale);
     applyDetailLevel(zoomLevel(scale));
