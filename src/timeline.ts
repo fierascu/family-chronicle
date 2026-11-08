@@ -65,8 +65,8 @@ export function createTimeline(
         const yrs = r ? `${e.date.y}–${e.end}` : '';
         out.push({
           id: e.id, group: 'History', type: 'point', start: new Date(e.date.y, 0, 1),
-          content: esc(e.title) + (yrs ? ` <span class="yrs">${yrs}</span>` : ''), className: e.cat + ' hist',
-          title: esc(`${yrs || e.date.y} · ${e.title}`),
+          content: esc(evTitle(e)) + (yrs ? ` <span class="yrs">${yrs}</span>` : ''), className: e.cat + ' hist',
+          title: esc(`${yrs || e.date.y} · ${evTitle(e)}`),
         });
       }
     }

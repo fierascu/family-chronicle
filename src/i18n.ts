@@ -1,13 +1,15 @@
 /**
- * The page's own words in each language. Content written by hand (config notes, history events, surname
- * meanings, notes from the tree) is shown as written; only the phrases the parser builds (Born:, Married:, …)
- * are translated here, by matching their English wording.
+ * The page's own words in each language, and the phrases the parser builds (Born:, Married:, …), matched by their
+ * English wording. Text written by hand (history events, notes, family-name meanings) is translated from the
+ * tree's <tree>.i18n.json (scripts/translations.ts); a text with no translation is shown as written.
+ * "Original" shows every text as written, with the page's own words in English.
  */
+import DATA from 'virtual:family-data';
 import type { Category, ChronicleEvent } from './types';
 
-export const LANGS = ['en', 'ro', 'fr', 'pt'] as const;
+export const LANGS = ['orig', 'en', 'ro', 'fr', 'pt'] as const;
 export type Lang = typeof LANGS[number];
-export const LANG_NAME: Record<Lang, string> = { en: 'English', ro: 'Română', fr: 'Français', pt: 'Português' };
+export const LANG_NAME: Record<Lang, string> = { orig: 'Original', en: 'English', ro: 'Română', fr: 'Français', pt: 'Português' };
 
 const en = {
   title: 'Family Chronicle',
@@ -472,7 +474,7 @@ const pt: Dict = {
   cause: 'Causa',
 };
 
-const DICTS: Record<Lang, Dict> = { en, ro, fr, pt };
+const DICTS: Record<Lang, Dict> = { orig: en, en, ro, fr, pt };
 
 const KEY = 'ftc-lang';
 const isLang = (x: unknown): x is Lang => LANGS.includes(x as Lang);
@@ -489,23 +491,33 @@ function initial(): Lang {
 export let lang: Lang = initial();
 /** the current language's words; a live binding, so importers always see the current one */
 export let L: Dict = DICTS[lang];
-document.documentElement.lang = lang;
+/** for dates and sorting: Original uses English */
+export const locale = () => (lang === 'orig' || lang === 'en' ? 'en-GB' : lang);
+document.documentElement.lang = locale();
 
 export function setLang(l: Lang) {
   lang = l;
   L = DICTS[l];
-  document.documentElement.lang = l;
+  document.documentElement.lang = locale();
   try { localStorage.setItem(KEY, l); } catch { /* ignore */ }
   const u = new URL(location.href);
   if (u.searchParams.has('lang')) { u.searchParams.set('lang', l); history.replaceState(null, '', u); }
 }
 
+const CONTENT = DATA.i18n ?? {};
+
+/** a hand-written text in the current language, when the tree's translations have it; else as written */
+export const tx = (s: string) => (lang === 'orig' ? s : CONTENT[lang]?.[s.trim()] ?? s);
+
 const GEN_RE = /^(Born \(estimated\)|Born|Died|Married \(estimated\)|Married): /;
 
-/** an event's title, with the parser's "Born:" / "Married:" … prefix in the current language */
-export const evTitle = (e: ChronicleEvent) =>
-  e.kind === 'family' ? e.title.replace(GEN_RE, (_, k: string) => `${L.gen[k] ?? k}: `) : e.title;
+/** an event's title: translated, or with the parser's "Born:" / "Married:" … prefix in the current language */
+export const evTitle = (e: ChronicleEvent) => {
+  if (lang === 'orig') return e.title;
+  const t = tx(e.title);
+  return t !== e.title ? t : e.title.replace(GEN_RE, (_, k: string) => `${L.gen[k] ?? k}: `);
+};
 
-/** an event's text, when it is one the parser wrote; anything written by hand stays as written */
+/** an event's text: the parser's own wording from the dictionary, else the tree's translation, else as written */
 export const evText = (e: ChronicleEvent) =>
-  e.kind !== 'family' ? e.text : L.genText[e.text] ?? e.text.replace(/^Cause: /, `${L.cause}: `);
+  lang === 'orig' ? e.text : L.genText[e.text] ?? (/^Cause: /.test(e.text) ? e.text.replace(/^Cause: /, `${L.cause}: `) : tx(e.text));

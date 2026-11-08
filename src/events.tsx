@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { EV, P, PL } from './data';
-import { evTitle, L, lang } from './i18n';
+import { evTitle, L, lang, locale } from './i18n';
 import { sourceOf } from './sources';
 import type { EventSource } from './sources';
 import { state } from './state';
@@ -71,7 +71,7 @@ function List({ open, tick }: { open: (id: string) => void; tick: number }) {
   const bySource = (a: ChronicleEvent, b: ChronicleEvent) => {
     const x = SRC.get(a.id)!.label, y = SRC.get(b.id)!.label;
     if (!x !== !y) return x ? -1 : 1; // events without a source last, whichever the direction
-    return (x.localeCompare(y, lang) || key(a) - key(b)) * (desc ? -1 : 1);
+    return (x.localeCompare(y, locale()) || key(a) - key(b)) * (desc ? -1 : 1);
   };
   const shown = EV.filter(e => state.cats.has(e.cat)
     && (!state.branch || e.kind === 'history' || P[e.person]?.branch === state.branch)

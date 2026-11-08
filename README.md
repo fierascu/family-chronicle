@@ -20,7 +20,7 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 - The Privacy section names the program and date of the tree export; the GEDCOM file itself is never published
 - Family names: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
-- The page in English, Romanian, French or Portuguese: picked in the header, remembered, or set with `?lang=ro`; otherwise the browser's language. The page's own words and the phrases built from the tree ("Born:", "Married (estimated):", estimated-year notes) are translated; text written by hand (notes, history events, family-name meanings) is shown as written
+- The page in English, Romanian, French or Portuguese, or "Original": picked in the header, remembered, or set with `?lang=ro`; otherwise the browser's language. The page's own words and the phrases built from the tree ("Born:", "Married (estimated):", estimated-year notes) are translated in the code; text written by hand (notes, history events, family-name meanings) is translated from a file next to the tree (see [Translations](#translations)). "Original" shows every text as written
 
 ## Project layout
 
@@ -39,7 +39,8 @@ src/                the app in TypeScript (no family data)
   style.css
 scripts/
   parse-gedcom.ts     GEDCOM + config -> the data the app shows, and build/checks.txt (data problems, for you)
-  family-data-plugin.ts  Vite plugin: picks the tree, parses it, adds the country outlines, hands it to the app
+  family-data-plugin.ts  Vite plugin: picks the tree, parses it, adds the country outlines and translations, hands it to the app
+  translations.ts     the hand-written texts to translate; lists what is missing
   check_no_family_data.sh  fails if a real tree or config is tracked by git (runs in CI)
 public/             .htaccess and robots.txt, copied into dist/
 demo/               fictional demo tree, committed
@@ -48,6 +49,7 @@ demo/               fictional demo tree, committed
 data/               your own tree, gitignored
   tree.ged            your GEDCOM export
   tree.config.json    settings for your tree (optional)
+  tree.i18n.json      translations of your notes and stories (optional)
 build/, dist/       generated, gitignored
 ```
 
@@ -93,6 +95,7 @@ npm run build
 | `GEDCOM=path/to/x.ged npm run build` | any file; config read from `path/to/x.config.json` |
 | `npm run preview` | serve the built `dist/` locally |
 | `npm run typecheck` | TypeScript check of the app and build scripts |
+| `npm run translations` | how many hand-written texts each language still lacks (see [Translations](#translations)) |
 
 The parser prints which input and config it used, a summary of what it found and the privacy settings applied. The data checks, with full names, go to `build/checks.txt`.
 
@@ -170,6 +173,22 @@ Notes:
 - **History.** A `plausible` history event whose `people` aren't in the tree is shown as `context`.
 - **Map.** To map a different country, change `COUNTRIES` (and `REGION`) in `scripts/family-data-plugin.ts` and set `settings.homeCountry`.
 
+## Translations
+
+The page's own words are in `src/i18n.ts`. The text you write (history events, `noteEvents`, family names in the config, and the notes inside the GEDCOM) is translated in `<name>.i18n.json` next to the tree (`data/tree.i18n.json`), keyed by the text exactly as written:
+
+```json
+{
+  "ro": { "Great floods of 1970": "Marile inundații din 1970" },
+  "fr": { "Great floods of 1970": "Les grandes inondations de 1970" },
+  "en": { "Lucrat la APIA": "Worked at APIA" }
+}
+```
+
+A text with no entry is shown as written, so translations can be added a few at a time. When an original changes, its old entry stops matching and the page shows the new original until it is translated again. Texts already in English need no `en` entry.
+
+`npm run translations` lists how many texts each language still lacks; `--list` prints them, and `--write` adds them to the file with empty values, ready to fill in. Only entries for texts that are on the page are published (a note left out for privacy never ships through its translation), and they are cleaned of emails and numbers like the originals. Like the config, the file is gitignored.
+
 ## Newspaper clippings
 
 Scanned newspaper pages can sit next to the tree in `<tree folder>/clippings/` (for `data/tree.ged`, that is `data/clippings/`), named `<document>_p<page>.jpg` after the Arcanum viewer address `adt.arcanum.com/en/view/<document>/?pg=<page>`. A `noteEvents` entry whose `link` or `text` contains such an address gets a thumbnail of the page in the person's record; clicking it opens a full-screen viewer (Prev/Next or arrow keys, click the page for full size, Esc to close). The header button "Newspaper clippings" opens the viewer at the oldest one.
@@ -214,7 +233,7 @@ Initials stop the page from being found by searching a name, but relatives can s
 
 **Not covered:** text you write yourself in the config (`history`, `surnames`, `noteEvents` about people who have died) is published as written, and street addresses inside free-text notes are not detected.
 
-**In the repository:** `.gitignore` excludes `data/`, GEDCOM files in any letter case, every `*.config.json` except the demo's, `.htpasswd`, `build/` and `dist/`. `scripts/check_no_family_data.sh` fails CI if one of them is committed anyway; to run it before each commit too:
+**In the repository:** `.gitignore` excludes `data/`, GEDCOM files in any letter case, every `*.config.json` except the demo's, every `*.i18n.json`, `.htpasswd`, `build/` and `dist/`. `scripts/check_no_family_data.sh` fails CI if one of them is committed anyway; to run it before each commit too:
 
 ```bash
 ln -s ../../scripts/check_no_family_data.sh .git/hooks/pre-commit
