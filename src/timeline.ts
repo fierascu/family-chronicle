@@ -8,6 +8,8 @@ export interface TimelineView {
   rebuild(): void;
   select(personId: string): void;
   focusPerson(personId: string): void;
+  /** after the timeline's tab is shown (vis cannot measure a hidden container) */
+  redraw(): void;
 }
 
 const yrs = people.map(p => p.by).filter((y): y is number => !!y);
@@ -54,24 +56,29 @@ export function createTimeline(
         out.push({ id: e.id, group: p.branch, type: 'point', start: toDate(e.date), content: '', className: e.cat,
           title: esc(`${fmt(e.date)} · ${e.title}`) });
       } else {
+        if (!state.hist) continue;
+        // a point with its label beside it: titles inside short range bars were cut to a few letters
         const r = !!e.end && e.end > e.date.y;
+        const yrs = r ? `${e.date.y}–${e.end}` : '';
         out.push({
-          id: e.id, group: 'History', type: r ? 'range' : 'point', start: new Date(e.date.y, 0, 1),
-          end: r ? new Date(e.end!, 11, 31) : undefined, content: esc(e.title), className: e.cat + (r ? ' histr' : ''),
-          title: esc(`${e.date.y}${r ? '–' + e.end : ''} · ${e.title}`),
+          id: e.id, group: 'History', type: 'point', start: new Date(e.date.y, 0, 1),
+          content: esc(e.title) + (yrs ? ` <span class="yrs">${yrs}</span>` : ''), className: e.cat + ' hist',
+          title: esc(`${yrs || e.date.y} · ${e.title}`),
         });
       }
     }
     items.clear();
     items.add(out);
-    groups.forEach(g => groups.update({ id: g.id, visible: !state.branch || g.id === state.branch || g.id === 'History' }));
+    groups.forEach(g => groups.update({
+      id: g.id, visible: g.id === 'History' ? state.hist : !state.branch || g.id === state.branch,
+    }));
   }
   rebuild();
 
   state.win[0] = T0;
   const tl = new Timeline(el, items, groups, {
-    start: new Date(T0, 0, 1), end: new Date(NOW, 11, 31), min: new Date(T_MIN, 0, 1), max: new Date(NOW + 5, 0, 1),
-    zoomMin: 1000 * 60 * 60 * 24 * 365 * 3, stack: true, maxHeight: 560, groupOrder: 'order', orientation: { axis: 'top', item: 'top' }, // item 'bottom' (vis default) opens scrolled to the last row, hiding History
+    start: new Date(T0, 0, 1), end: new Date(NOW + 8, 11, 31), min: new Date(T_MIN, 0, 1), max: new Date(NOW + 15, 0, 1),
+    zoomMin: 1000 * 60 * 60 * 24 * 365 * 3, stack: true, height: '100%', verticalScroll: true, groupOrder: 'order', orientation: { axis: 'top', item: 'top' }, // item 'bottom' (vis default) opens scrolled to the last row, hiding History
     margin: { item: { horizontal: 2, vertical: 4 } }, tooltip: { followMouse: true }, showCurrentTime: false, selectable: true,
   });
   tl.on('rangechanged', ({ start, end }: { start: Date; end: Date }) => {
@@ -88,5 +95,6 @@ export function createTimeline(
     rebuild,
     select: id => tl.setSelection(['p' + id]),
     focusPerson: id => { if (items.get('p' + id)) tl.focus('p' + id, { animation: false }); },
+    redraw: () => tl.redraw(),
   };
 }

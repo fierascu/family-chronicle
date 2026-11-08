@@ -19,6 +19,7 @@
       <button class="chip" id="c-plaus" aria-pressed="true" data-cat="plausible"><span class="g plausible"></span>Plausible</button>
       <button class="chip" id="c-ctx" aria-pressed="true" data-cat="context"><span class="g context"></span>Context</button>
       <button class="chip" id="c-fun" aria-pressed="true" data-cat="fun"><span class="g fun"></span>Fun</button>
+      <button class="chip help" type="button" id="help" aria-controls="legend" aria-label="What the categories mean">?</button>
       <button class="chip" id="c-clips" type="button" hidden>Newspaper clippings</button>
       <label class="hint" for="branch"><span class="sw" id="branch-sw" hidden></span>Branch</label>
       <select id="branch"><option value="">All branches</option></select>
@@ -27,51 +28,70 @@
     </div>
   </header>
 
-  <section class="panel" aria-label="Timeline">
-    <div class="tlhead">
-      <h2>Timeline</h2>
-      <span class="hint" id="tl-hint">Drag/pinch to pan &amp; zoom · tap to open record</span>
-    </div>
-    <div id="tl"></div>
-  </section>
+  <nav class="names" aria-label="Family names" title="What each name suggests, where it comes from, its variations and how it changed">
+    <span class="names-label">Family names</span>
+    <div class="names-row" id="surnames"></div>
+  </nav>
 
-  <section class="panel" id="events" aria-label="Events"></section>
+  <main class="main">
+      <section class="panel stage" aria-label="Family chronicle views">
+        <div class="tabs" role="tablist" aria-label="Views">
+          <button type="button" role="tab" id="tab-timeline" aria-controls="p-timeline" data-tab="timeline">Timeline</button>
+          <button type="button" role="tab" id="tab-events" aria-controls="p-events" data-tab="events">Events</button>
+          <button type="button" role="tab" id="tab-places" aria-controls="p-places" data-tab="places">Places</button>
+        </div>
 
-  <div class="lower">
-    <section class="panel mapbox" aria-label="Map">
-      <div class="tlhead" style="padding:0 0 6px"><h2>Places</h2><span class="hint meta" id="span"></span></div>
-      <div class="globe-wrap">
-        <canvas id="globe-canvas"></canvas>
-        <svg id="map" role="img" aria-label="Spinning globe of family places" style="background:transparent"></svg>
-      </div>
-      <div class="abroad" id="abroad"></div>
-    </section>
-    <section class="panel card" id="card" aria-live="polite"></section>
-  </div>
+        <div class="tabpanel" id="p-timeline" role="tabpanel" aria-labelledby="tab-timeline">
+          <div class="tlhead">
+            <span class="hint" id="tl-hint">Drag or pinch to move and zoom · tap to open a record</span>
+            <button class="chip small" id="hist-toggle" type="button" aria-pressed="true">History row</button>
+          </div>
+          <div id="tl"><p class="loading">Loading the timeline…</p></div>
+        </div>
+
+        <div class="tabpanel" id="p-events" role="tabpanel" aria-labelledby="tab-events" hidden>
+          <div id="events"></div>
+        </div>
+
+        <div class="tabpanel mapbox" id="p-places" role="tabpanel" aria-labelledby="tab-places" hidden>
+          <div class="tlhead">
+            <span class="hint">Drag to turn · pinch, scroll or +/− to zoom · numbered circles are several places: tap to zoom in</span>
+            <span class="hint meta" id="span"></span>
+          </div>
+          <div class="globe-wrap">
+            <canvas id="globe-canvas"></canvas>
+            <svg id="map" role="img" aria-label="Globe of family places" style="background:transparent"></svg>
+            <div class="zoom" role="group" aria-label="Map zoom">
+              <button type="button" id="z-in" aria-label="Zoom in">+</button>
+              <button type="button" id="z-out" aria-label="Zoom out">−</button>
+              <button type="button" id="z-home" aria-label="Back to Romania" title="Back to Romania">⟲</button>
+            </div>
+          </div>
+          <div class="abroad" id="abroad"></div>
+        </div>
+      </section>
+
+      <section class="panel card" id="card" aria-live="polite" aria-label="Record"></section>
+    </main>
 
   <div class="foot">
-    <section class="panel">
-      <h2>How events are sorted</h2>
+    <section class="panel" id="checks-panel" hidden>
+      <h2>Things to fix in the tree</h2>
+      <ul id="checks"></ul>
+    </section>
+    <details class="panel legend" id="legend">
+      <summary>How events are sorted</summary>
       <dl>
         <dt><span class="g sure"></span>Sure</dt><dd>A dated fact recorded in the tree: birth, death, marriage.</dd>
         <dt><span class="g plausible"></span>Plausible</dt><dd>Estimated dates (from children, siblings or notes), or a historical event that very likely touched a named relative. Each one says what to check.</dd>
         <dt><span class="g context"></span>Context</dt><dd>History of the places and times the family lived through, with no claimed personal link.</dd>
         <dt><span class="g fun"></span>Fun</dt><dd>Family stories, firsts and curiosities: the first TV, a famous recipe, a legendary trip. Told for enjoyment, not checked like the rest.</dd>
       </dl>
-    </section>
-    <section class="panel">
-      <h2>Family names</h2>
-      <p class="hint" style="margin:6px 0 0">What each name suggests, where it comes from, its variations and how it changed.</p>
-      <div class="rel" id="surnames" style="margin-top:8px"></div>
-    </section>
-    <section class="panel" id="checks-panel" hidden>
-      <h2>Things to fix in the tree</h2>
-      <ul id="checks"></ul>
-    </section>
-    <section class="panel">
-      <h2>Privacy</h2>
-      <p class="hint" style="margin:8px 0 0" id="privacy"></p>
-    </section>
+    </details>
+    <details class="panel legend">
+      <summary>Privacy</summary>
+      <p class="hint" id="privacy"></p>
+    </details>
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

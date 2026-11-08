@@ -13,9 +13,12 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
   - **Plausible** (orange diamond): estimated dates, or history that likely touched a named relative
   - **Context** (blue square): history of the time and place, no claimed personal link
   - **Fun** (magenta star): family stories, firsts and curiosities
-- An events list under the timeline: sortable by date, filtered by name, place or year (diacritics optional), and by the same category and branch filters; a row opens its record
-- The map shows only events in the years visible on the timeline, with migration lines between a person's places
-- A "Family names" section: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
+- An events list: sortable by date or by source, filtered by name, place, year or source (diacritics optional), and by the same category and branch filters; a row opens its record. The Source column says where each event comes from (GED file, Arcanum, National Archives, Wikipedia, or the site's name) and the Link column opens that page
+- The map shows only events in the years visible on the timeline, with migration lines between a person's places. Pins use the category shapes; places that would overlap merge into a numbered circle (tap it to zoom in). Drag to turn the globe; zoom with pinch, the mouse wheel or the +/− buttons; ⟲ returns to the home country. On a phone, one finger turns the globe sideways and vertical swipes scroll the page
+- One large panel with three tabs (Timeline, Events, Places); the page remembers the last one opened. The family names sit in a row above it, and "How events are sorted" and "Privacy" are closed sections at the end of the page (the "?" button opens the first)
+- The record card sits under the panel; opening a record scrolls the page just far enough to show it. The History row can be hidden (it starts hidden on phones)
+- The Privacy section names the program and date of the tree export; the GEDCOM file itself is never published
+- Family names: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
 
 ## Project layout
@@ -27,7 +30,8 @@ src/                the app in TypeScript (no family data)
   timeline.ts         vis-timeline rows and items
   globe.ts            D3 globe: canvas background, pins, migration lines
   card.tsx            record card (Preact) (person, event, place)
-  events.tsx          events list (Preact): sort, text filter
+  events.tsx          events list (Preact): sort, text filter, source and link columns
+  sources.ts          where an event comes from (linked site or the tree file)
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
   style.css
@@ -108,7 +112,7 @@ Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D
 |---|---|---|
 | `vite` | ^7.3.7 | dev server and build; needs Node `^20.19.0 \|\| >=22.12.0` |
 | `@preact/preset-vite` | 2.10.6 | JSX compile and hot reload for Preact; supports Vite 2–8 |
-| `preact` | 11.2.0 | record card (`src/card.tsx`) |
+| `preact` | 11.2.0 | record card (`src/card.tsx`) and events list (`src/events.tsx`) |
 | `vis-timeline` | ^7.7.4 | timeline; the `standalone` build is used, so its peer packages are bundled in |
 | `d3` | 7.9.0 | globe projection, pins and migration lines |
 | `topojson-client`, `world-atlas` | 3.1.0, 2.0.2 | country and land outlines |
@@ -116,7 +120,7 @@ Everything is bundled: [vis-timeline](https://visjs.github.io/vis-timeline/), [D
 
 The GEDCOM parser uses no library. Reading GEDCOM lines into a tree takes about 20 lines; the rest (dates, places, estimates, branches, checks) is specific to this project. It shares its output types with the app (`src/types.ts`), so `npm run typecheck` catches a mismatch between the two.
 
-Only the record card uses Preact. The timeline and globe draw through vis-timeline and D3, so they stay plain TypeScript. JSX is set up in `tsconfig.json` (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`).
+Only the record card and the events list use Preact. The timeline and globe draw through vis-timeline and D3, so they stay plain TypeScript. JSX is set up in `tsconfig.json` (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`).
 
 ## Configuration
 
@@ -136,6 +140,7 @@ The code holds no family data. Everything specific to one tree goes in `<name>.c
 | `placeRules` | `{contains, place}`: map messy place strings to a place key (`"Lisabona"` → `"Lisbon"`) |
 | `branches` | Surname → branch name. Order sets branch colours |
 | `noteEvents` | Facts from free-text notes or sources: `person`, `year`, `place`, `title`, `text`, optional `cat: "fun"` (shown as plausible, or as fun), `link` (source page, shown as "Read more"), `dated: true` (the year comes from a source, so it is shown without "c.") |
+| `sources` | Names for linked sites, keyed by host: `{ "example.org": { "name": "…", "about": "…" } }` (`name` is shown in the events list's Source column, `about` on hover). Arcanum, the Romanian National Archives, FamilySearch and Wikipedia are named already |
 | `history` | Historical events: `cat` (`plausible`, `context` or `fun`), `start`, `end`, `place`, `title`, `text`, `link`, `people` |
 | `surnames` | Family name → `meaning`, `origin`, `variants` (other spellings, also matched in the tree), `changes` (`when`, `text`), `link` |
 | `placeNotes` | Extra "things to fix" lines: `text`, added when a raw place contains all strings in `rawPlaceContains` |

@@ -6,7 +6,7 @@ import type { Feature, FeatureCollection, MultiLineString, MultiPolygon } from '
 import land110Url from 'world-atlas/land-110m.json?url';
 import land50Url from 'world-atlas/land-50m.json?url';
 import countries10Url from 'world-atlas/countries-10m.json?url';
-import { EV, GEO, HOME, P, PL, people, personPath } from './data';
+import { EV, GEO, HOME, NOW, P, PL, people, personPath } from './data';
 import { state } from './state';
 import { bcls } from './util';
 import type { ChronicleEvent, Category, CountryOutline } from './types';
@@ -14,6 +14,10 @@ import type { ChronicleEvent, Category, CountryOutline } from './types';
 export interface GlobeView {
   /** full redraw of pins, labels and migration lines (after filter, selection or time window changes) */
   drawPins(): void;
+  zoomIn(): void;
+  zoomOut(): void;
+  /** back to the starting view on Romania */
+  reset(): void;
 }
 
 type LandTopo = Topology<{ land: GeometryCollection }>;
@@ -66,6 +70,7 @@ export function createGlobe(
     canvas.height = rect.width * dpr; // square
     canvasScale = rect.width / W;
     paintCanvas();
+    if (ready) drawPins(); // pin and label sizes are in screen pixels
   }
   new ResizeObserver(resizeCanvas).observe(canvas);
   requestAnimationFrame(resizeCanvas);
@@ -92,6 +97,7 @@ export function createGlobe(
   layers.neighbours = GEO.filter(c => c.name !== HOME).map(toGJ);
 
   let detail = 0;
+  let ready = false; // set once the SVG layers exist
 
   function paintCanvas() {
     const dpr = window.devicePixelRatio || 1;
@@ -160,13 +166,53 @@ export function createGlobe(
 
   /* ---- SVG overlay: migration lines, pins, labels ---- */
   const migG = svg.append('g'), pinG = svg.append('g'), lblG = svg.append('g');
-  const onFront = (k: string) => d3.geoDistance([PL[k].lon, PL[k].lat], proj.invert!([W / 2, H / 2])!) < Math.PI / 2;
-  const radius = (d: PinRow) => 4 + Math.sqrt(d.evs.length) * 2.4;
+  const onFront = (lon: number, lat: number) => d3.geoDistance([lon, lat], proj.invert!([W / 2, H / 2])!) < Math.PI / 2;
+  /** viewBox units for n CSS pixels, so pins and labels keep the same on-screen size at any width */
+  const px = (n: number) => n / (canvasScale || 1);
+  const pinR = (events: number) => px(4.5 + Math.sqrt(events) * 1.25);
+  const radius = (d: Pin) => pinR(d.evs.length);
   const segPath = (d: Segment) => {
     const a = PL[d.a], b = PL[d.b];
     return a && b ? path({ type: 'LineString', coordinates: [[a.lon, a.lat], [b.lon, b.lat]] }) ?? '' : '';
   };
+  /** same shapes as the legend: circle, diamond, square, star; a cluster is a circle with a count */
+  const SHAPE: Record<Category, d3.SymbolType> = {
+    sure: d3.symbolCircle, plausible: d3.symbolDiamond, context: d3.symbolSquare, fun: d3.symbolStar,
+  };
+  const symbol = (d: Pin) => {
+    const many = d.keys.length > 1;
+    const grow = many ? 1.3 : d.cat === 'fun' ? 1.6 : d.cat === 'plausible' ? 1.25 : 1;
+    return d3.symbol(many ? d3.symbolCircle : SHAPE[d.cat], Math.PI * radius(d) ** 2 * grow)()!;
+  };
+
+  /** a pin: one place, or a cluster of places that would overlap at this zoom */
+  interface Pin { k: string; keys: string[]; evs: ChronicleEvent[]; cat: Category; lon: number; lat: number }
+
+  /** merges overlapping pins, repeating until none overlap (a merged pin is larger and may touch another);
+   * a cluster sits at the busiest place in it */
+  function cluster(rows: PinRow[]): Pin[] {
+    let out: (Pin & { x: number; y: number })[] = [...rows].sort((a, b) => b.evs.length - a.evs.length).map(r => {
+      const [x, y] = xy(r.k);
+      return { k: r.k, keys: [r.k], evs: r.evs, cat: r.cat, lon: PL[r.k].lon, lat: PL[r.k].lat, x, y };
+    });
+    for (let merged = true; merged;) {
+      merged = false;
+      const next: typeof out = [];
+      for (const p of out) {
+        const hit = next.find(c => Math.hypot(c.x - p.x, c.y - p.y) < (radius(p) + radius(c)) * 1.15);
+        if (!hit) { next.push(p); continue; }
+        hit.keys.push(...p.keys); hit.evs = hit.evs.concat(p.evs);
+        if (rank[p.cat] > rank[hit.cat]) hit.cat = p.cat;
+        merged = true;
+      }
+      out = next;
+    }
+    return out;
+  }
+
   let labelKeys = new Set<string>(); // labels that passed the last collision filter
+  let leftSide = new Set<string>(); // labels placed left of their pin
+  const labelX = (d: Pin) => pinXY(d)[0] + (leftSide.has(d.k) ? -1 : 1) * (radius(d) + px(4));
 
   function drawMig() {
     const segs: Segment[] = [];
@@ -177,79 +223,159 @@ export function createGlobe(
     }
     migG.selectAll<SVGPathElement, Segment>('path').data(segs).join('path')
       .attr('class', d => `mig ${bcls(P[d.pid].branch)}` + (d.pid === state.sel ? ' on' : ''))
-      .attr('d', segPath);
+      .attr('d', segPath).style('stroke-width', d => px(d.pid === state.sel ? 2.6 : 1.3));
   }
 
+  const pinXY = (d: Pin) => proj([d.lon, d.lat])!;
+  const placeName = (k: string) => PL[k].label.split(/[,(]/)[0].trim();
+
   function drawPins() {
-    spanEl.textContent = `${state.win[0]}–${state.win[1]}`;
+    spanEl.textContent = `${state.win[0]}–${Math.min(state.win[1], NOW)}`;
     const byPlace = d3.group(visibleEvents(), e => e.place!);
     const selPlaces = state.sel ? new Set(personPath(P[state.sel])) : new Set<string>();
-    const rows: PinRow[] = [...byPlace].map(([k, evs]) =>
+    const rows: PinRow[] = [...byPlace].filter(([k]) => onFront(PL[k].lon, PL[k].lat)).map(([k, evs]) =>
       ({ k, evs, cat: evs.reduce<Category>((a, e) => (rank[e.cat] > rank[a] ? e.cat : a), 'fun') }));
-    pinG.selectAll<SVGCircleElement, PinRow>('circle').data(rows, d => d.k).join('circle')
-      .attr('class', d => `pin ${d.cat}${selPlaces.has(d.k) ? ' on' : ''}`)
-      .attr('cx', d => xy(d.k)[0]).attr('cy', d => xy(d.k)[1]).attr('r', radius)
-      .attr('display', d => (onFront(d.k) ? null : 'none'))
-      .attr('tabindex', 0).attr('role', 'button').attr('aria-label', d => `${PL[d.k].label}, ${d.evs.length} events`)
-      .on('click', (_ev, d) => { on.place(d.k); })
-      .on('keydown', (ev: KeyboardEvent, d) => { if (ev.key === 'Enter') { on.place(d.k); } })
-      .selectAll('title').data(d => [d]).join('title')
-      .text(d => `${PL[d.k].label} — ${d.evs.length} event${d.evs.length > 1 ? 's' : ''}`);
+    const pins = cluster(rows);
+    const many = (d: Pin) => d.keys.length > 1;
+    const isSel = (d: Pin) => d.keys.some(k => selPlaces.has(k));
+    const desc = (d: Pin) => many(d)
+      ? `${d.keys.length} places (${d.keys.map(placeName).join(', ')}), ${d.evs.length} events. Click to zoom in`
+      : `${PL[d.k].label}, ${d.evs.length} event${d.evs.length > 1 ? 's' : ''}`;
+
+    const g = pinG.selectAll<SVGGElement, Pin>('g').data(pins, d => d.keys.join('|')).join(enter => {
+      const e = enter.append('g');
+      e.append('path'); e.append('text').attr('class', 'pc'); e.append('title');
+      return e;
+    });
+    g.attr('class', d => `pin ${many(d) ? 'cluster' : d.cat}${isSel(d) ? ' on' : ''}`)
+      .attr('transform', d => `translate(${pinXY(d)})`).attr('display', null)
+      .attr('tabindex', 0).attr('role', 'button').attr('aria-label', desc)
+      .on('click', (_ev, d) => open(d))
+      .on('keydown', (ev: KeyboardEvent, d) => { if (ev.key === 'Enter') open(d); });
+    g.select('path').attr('d', symbol).style('stroke-width', d => px(isSel(d) ? 2.5 : 1.5));
+    g.select<SVGTextElement>('text.pc').text(d => (many(d) ? d.keys.length : ''))
+      .style('font-size', `${px(10.5)}px`).attr('dy', '0.35em');
+    g.select('title').text(desc);
 
     // Label candidates: at L0 only busy or selected places; at L1+ all places, most important first
-    const weight = (d: PinRow) => (selPlaces.has(d.k) ? 1000 : 0) + d.evs.length;
-    const candidates = (detail >= 1 ? rows : rows.filter(d => d.evs.length >= 3 || selPlaces.has(d.k)))
-      .filter(d => onFront(d.k)).sort((a, b) => weight(b) - weight(a));
-    // Greedy collision filter: skip labels whose anchor is within MIN_GAP px of one already placed
-    const MIN_GAP = 55;
-    const placed: [number, number][] = [];
+    const weight = (d: Pin) => (isSel(d) ? 1000 : 0) + d.evs.length;
+    const candidates = (detail >= 1 ? pins : pins.filter(d => d.evs.length >= 3 || isSel(d)))
+      .sort((a, b) => weight(b) - weight(a));
+    // Greedy collision filter: a label (an estimated box beside its pin, right side first, then left)
+    // is skipped when both sides would cover another pin or a label already placed
+    const text = (d: Pin) => placeName(d.k) + (many(d) ? ` +${d.keys.length - 1}` : '');
+    type Box = [number, number, number, number];
+    const boxOf = (d: Pin, left: boolean): Box => {
+      const [cx, cy] = pinXY(d), w = px(6.4) * text(d).length, gap = radius(d) + px(4);
+      return left ? [cx - gap - w, cy - px(8), cx - gap, cy + px(8)] : [cx + gap, cy - px(8), cx + gap + w, cy + px(8)];
+    };
+    const overlaps = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+    const free = (d: Pin, b: Box) => b[0] > 0 && b[2] < W && !placed.some(q => overlaps(b, q)) && !pins.some(o => {
+      if (o === d) return false;
+      const [ox, oy] = pinXY(o), r = radius(o);
+      return overlaps(b, [ox - r, oy - r, ox + r, oy + r]);
+    });
+    const placed: Box[] = [];
+    leftSide = new Set();
     const shown = candidates.filter(d => {
-      const [cx, cy] = xy(d.k);
-      const lx = cx + radius(d) + 3, ly = cy + 3.5;
-      const hit = placed.some(([px, py]) => Math.hypot(lx - px, ly - py) < MIN_GAP);
-      if (!hit) placed.push([lx, ly]);
-      return !hit;
+      for (const left of [false, true]) {
+        const b = boxOf(d, left);
+        if (!free(d, b)) continue;
+        placed.push(b);
+        if (left) leftSide.add(d.k);
+        return true;
+      }
+      return false;
     });
     labelKeys = new Set(shown.map(d => d.k));
-    lblG.selectAll<SVGTextElement, PinRow>('text').data(shown, d => d.k).join('text').attr('class', 'pl')
-      .attr('x', d => xy(d.k)[0] + radius(d) + 3).attr('y', d => xy(d.k)[1] + 3.5).attr('display', null)
-      .text(d => PL[d.k].label.split(/[,(]/)[0].trim());
+    lblG.selectAll<SVGTextElement, Pin>('text').data(shown, d => d.k).join('text').attr('class', 'pl')
+      .style('font-size', `${px(12)}px`).style('stroke-width', `${px(3)}px`).attr('dy', '0.35em')
+      .attr('text-anchor', d => (leftSide.has(d.k) ? 'end' : 'start'))
+      .attr('x', labelX).attr('y', d => pinXY(d)[1]).attr('display', null)
+      .text(text);
     drawMig();
   }
 
   /** reposition pins, labels and lines after the projection moved */
   function redrawPins() {
-    pinG.selectAll<SVGCircleElement, PinRow>('circle')
-      .attr('cx', d => xy(d.k)[0]).attr('cy', d => xy(d.k)[1])
-      .attr('display', d => (onFront(d.k) ? null : 'none'));
-    lblG.selectAll<SVGTextElement, PinRow>('text')
-      .attr('x', d => xy(d.k)[0] + radius(d) + 3).attr('y', d => xy(d.k)[1] + 3.5)
-      .attr('display', d => (labelKeys.has(d.k) && onFront(d.k) ? null : 'none'));
+    pinG.selectAll<SVGGElement, Pin>('g')
+      .attr('transform', d => `translate(${pinXY(d)})`)
+      .attr('display', d => (onFront(d.lon, d.lat) ? null : 'none'));
+    lblG.selectAll<SVGTextElement, Pin>('text')
+      .attr('x', labelX).attr('y', d => pinXY(d)[1])
+      .attr('display', d => (labelKeys.has(d.k) && onFront(d.lon, d.lat) ? null : 'none'));
     migG.selectAll<SVGPathElement, Segment>('path').attr('d', segPath);
   }
 
-  /* ---- drag, zoom (no auto-rotation) ---- */
-  let dragStart: { rotate: [number, number, number]; x: number; y: number } | null = null;
-  svg.call(d3.drag<SVGSVGElement, unknown>()
-    .on('start', ev => { dragStart = { rotate: proj.rotate(), x: ev.x, y: ev.y }; })
-    .on('drag', ev => {
-      if (!dragStart) return;
-      const k = 90 / proj.scale();
-      const [r0, r1, r2] = dragStart.rotate;
-      proj.rotate([r0 + (ev.x - dragStart.x) * k, r1 - (ev.y - dragStart.y) * k, r2]);
-      paintCanvas();
-      redrawPins();
-    })
-    .on('end', () => { dragStart = null; }));
+  /* ---- view changes: zoom, rotate, reset ---- */
+  function setScale(scale: number) {
+    proj.scale(Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale)));
+    applyDetailLevel(zoomLevel(proj.scale()));
+    paintCanvas();
+    drawPins(); // full rebind: clusters and the label threshold depend on the zoom
+  }
+  /** a place opens its card; a cluster zooms in on its places */
+  function open(d: Pin) {
+    if (d.keys.length === 1 || proj.scale() >= SCALE_MAX) { on.place(d.k); return; }
+    const lon = d3.mean(d.keys, k => PL[k].lon)!, lat = d3.mean(d.keys, k => PL[k].lat)!;
+    proj.rotate([-lon, -lat, 0]);
+    setScale(proj.scale() * 2.5);
+  }
+  function reset() { proj.rotate([-25, -46, 0]); setScale(START_SCALE); }
+
+  /* ---- gestures: a mouse drag turns the globe any way. On touch, one finger turns it sideways
+     (vertical swipes scroll the page: touch-action pan-y) and two fingers pinch to zoom and move it ---- */
+  const ptrs = new Map<number, { x: number; y: number }>();
+  let gesture: { rotate: [number, number, number]; scale: number; x: number; y: number; dist: number } | null = null;
+  let dragged = false, downAt = { x: 0, y: 0 };
+  const centre = () => {
+    const p = [...ptrs.values()];
+    return {
+      x: d3.mean(p, q => q.x)!, y: d3.mean(p, q => q.y)!,
+      dist: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0,
+    };
+  };
+  const begin = () => { gesture = { rotate: proj.rotate(), scale: proj.scale(), ...centre() }; };
+  svgEl.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (ptrs.size === 1) { dragged = false; downAt = { x: ev.clientX, y: ev.clientY }; }
+    begin();
+  });
+  svgEl.addEventListener('pointermove', ev => {
+    if (!ptrs.has(ev.pointerId) || !gesture) return;
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (!dragged && (ptrs.size > 1 || Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y) > 4)) {
+      dragged = true;
+      for (const id of ptrs.keys()) svgEl.setPointerCapture(id);
+    }
+    if (!dragged) return;
+    const m = centre();
+    if (ptrs.size > 1 && gesture.dist) {
+      proj.scale(Math.max(SCALE_MIN, Math.min(SCALE_MAX, gesture.scale * m.dist / gesture.dist)));
+      applyDetailLevel(zoomLevel(proj.scale()));
+    }
+    const k = 90 / proj.scale() / (canvasScale || 1);
+    const [r0, r1, r2] = gesture.rotate;
+    const dy = ev.pointerType === 'touch' && ptrs.size === 1 ? 0 : m.y - gesture.y;
+    proj.rotate([r0 + (m.x - gesture.x) * k, Math.max(-89, Math.min(89, r1 - dy * k)), r2]);
+    paintCanvas();
+    redrawPins();
+  });
+  const end = (ev: PointerEvent) => {
+    if (!ptrs.delete(ev.pointerId)) return;
+    if (ptrs.size) begin(); else { gesture = null; if (dragged) drawPins(); }
+  };
+  svgEl.addEventListener('pointerup', end);
+  svgEl.addEventListener('pointercancel', end);
+  // a drag that ends on a pin is not a click
+  svgEl.addEventListener('click', ev => { if (dragged) { ev.stopPropagation(); dragged = false; } }, true);
 
   svgEl.addEventListener('wheel', ev => {
     ev.preventDefault();
-    const scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, proj.scale() * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
-    proj.scale(scale);
-    applyDetailLevel(zoomLevel(scale));
-    paintCanvas();
-    drawPins(); // full rebind so the label threshold updates
+    setScale(proj.scale() * (ev.deltaY < 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
 
-  return { drawPins };
+  ready = true;
+  return { drawPins, zoomIn: () => setScale(proj.scale() * 1.6), zoomOut: () => setScale(proj.scale() / 1.6), reset };
 }
