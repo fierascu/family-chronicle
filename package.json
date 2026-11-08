@@ -13,7 +13,8 @@
     "build": "vite build",
     "build:demo": "vite build --mode demo",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "archives": "node scripts/search-archives.ts"
   },
   "dependencies": {
     "@fontsource/alegreya": "5.3.0",

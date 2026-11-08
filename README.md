@@ -167,6 +167,16 @@ Scanned newspaper pages can sit next to the tree in `<tree folder>/clippings/` (
 
 Only the pages an event links to are served by `npm run dev` and copied to `dist/clippings/` by `npm run build`. Like the rest of `data/`, the folder is ignored by git. Scans from a subscription archive are under copyright: keep a page that shows them behind a password.
 
+## Searching the Romanian National Archives
+
+`npm run archives` (or `node scripts/search-archives.ts <tree.ged>`) searches the Romanian National Archives portal, [descopera.arhivelenationale.ro](https://descopera.arhivelenationale.ro/), for the people in the tree. It needs Node 22.18 or newer, which runs TypeScript directly.
+
+It searches each surname (and its `variants` from the config), each surname with each village from the tree, each given name with the surname, and, for surnames of people born before about 1935, each surname with each year from 1860 to 1930. Only these names, villages and years are sent to the portal.
+
+The portal returns catalogue entries (school files, petitions, veterans' files, and so on) and, for the digitised civil registers, index lines such as `Lina Ion Staicu Fierăscu -Albeni 1896-11-27 N-1896-56`: child, father, grandfather, surname, village, date, `N`/`C`/`D` (birth, marriage, death) and act number. Registers become public after 100 years, so these lines stop around 1925. The script matches the lines to people by first name, surname and year (for undated people, a year range worked out from their relatives) and scores higher when the father's or spouse's name matches the tree.
+
+The results go to `build/archives.md`: possible matches by person, then all other register lines in date order (relatives, often the same village), then other catalogue entries. Nothing is added to the tree or the config automatically: check a match on the portal, then add it as a `noteEvents` entry with the `cota/?cid=` address as its `link`.
+
 ## Deploying
 
 Upload the contents of `dist/` (including the hidden `.htaccess`). Asset URLs are relative, so any sub-folder works.
