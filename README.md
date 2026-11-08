@@ -49,6 +49,7 @@ scripts/
   family-data-plugin.ts  Vite plugin: picks the tree, parses it, adds the country outlines and translations, hands it to the app
   translations.ts     the hand-written texts to translate; lists what is missing
   check_no_family_data.sh  fails if a real tree or config is tracked by git (runs in CI)
+tests/              npm test: parser, privacy rules, translations, and a demo build checked for living people's details
 public/             .htaccess and robots.txt, copied into dist/
 demo/               fictional demo tree, committed
   dummy.ged           2 families, 10 people
@@ -211,6 +212,21 @@ It searches each surname (and its `variants` from the config), each surname with
 The portal returns catalogue entries (school files, petitions, veterans' files, and so on) and, for the digitised civil registers, index lines such as `Lina Ion Staicu Fierăscu -Albeni 1896-11-27 N-1896-56`: child, father, grandfather, surname, village, date, `N`/`C`/`D` (birth, marriage, death) and act number. Registers become public after 100 years, so these lines stop around 1925. The script matches the lines to people by first name, surname and year (for undated people, a year range worked out from their relatives) and scores higher when the father's or spouse's name matches the tree.
 
 The results go to `build/archives.md`: possible matches by person, then all other register lines in date order (relatives, often the same village), then other catalogue entries. Nothing is added to the tree or the config automatically: check a match on the portal, then add it as a `noteEvents` entry with the `cota/?cid=` address as its `link`.
+
+## Tests
+
+```sh
+npm test
+```
+
+Uses Node's built-in test runner on the TypeScript files directly, so it needs Node 22.18+ (or 23.6+), which can run `.ts` files without a flag. CI runs it on every push and pull request.
+
+- `tests/privacy.test.ts`: what reaches the page about living people in each `livingPeople` mode (names, notes, places, dates, marriages, branches, family names, `noteEvents`, the data checks)
+- `tests/parse-gedcom.test.ts`: GEDCOM lines, dates, HTML notes, coordinates and place rules, and `scrub` (emails, phone and ID numbers removed; dates and years kept)
+- `tests/translations.test.ts`: only translations of texts on the page are published, scrubbed
+- `tests/build-privacy.test.ts`: builds the demo and checks that no living person's name, notes or stories are in the output. The living people are worked out from `demo/dummy.ged` itself, so the test still holds when the demo changes
+
+The tests write their trees to temporary folders and never read `data/`.
 
 ## Deploying
 

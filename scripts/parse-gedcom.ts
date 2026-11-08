@@ -549,3 +549,6 @@ export function parseGedcom(gedPath: string): ParseResult {
     ],
   };
 }
+
+/** Internal helpers, exported only for the tests (tests/parse-gedcom.test.ts) */
+export const __test = { splitLines, parseDate, unescapeHtml, cleanNote };

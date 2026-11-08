@@ -24,13 +24,6 @@ jobs:
 
       - run: npm ci
       - run: npm run typecheck
+      # includes tests/build-privacy.test.ts: builds the demo and checks no living person's details reach the page
+      - run: npm test
       - run: npm run build:demo
-
-      # Corina and Dan Marin are the demo's living people: their names, notes and story must not reach the page
-      - name: Living people are not published
-        run: |
-          if grep -rlE "Corina|Dan Marin|Dacia|Engineer" dist/assets; then
-            echo "A living demo person's details are in the build output." >&2
-            exit 1
-          fi
-          echo "OK"
