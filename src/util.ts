@@ -37,7 +37,4 @@ const pad = (n?: number) => String(n).padStart(2, '0');
 export const fmt = (d?: DateValue | null) =>
   !d ? '' : d.prec === 'est' ? `${L.circa} ${d.y}` : d.prec === 'day' ? `${d.d}.${pad(d.m)}.${d.y}` : d.prec === 'month' ? `${pad(d.m)}.${d.y}` : `${d.y}`;
 
-/** lower case without accents, for matching: 'Ștefănescu' ~ 'stefanescu' */
-export const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;

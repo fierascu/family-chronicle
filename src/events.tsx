@@ -5,7 +5,8 @@ import { evTitle, L, lang, locale } from './i18n';
 import { sourceOf } from './sources';
 import type { EventSource } from './sources';
 import { state } from './state';
-import { fmt, fold, label } from './util';
+import { fold } from './find';
+import { fmt, label } from './util';
 import type { ChronicleEvent } from './types';
 
 export interface EventListView {

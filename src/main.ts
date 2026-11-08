@@ -19,6 +19,7 @@ import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
 import { CLIPS, openClip, resetClips } from './clips';
 import { createEventList } from './events';
+import { matchPerson, matchSurname, nameParam } from './find';
 import { createGlobe } from './globe';
 import { L, lang, LANG_NAME, LANGS, setLang } from './i18n';
 import type { Lang } from './i18n';
@@ -26,7 +27,7 @@ import { treeAbout } from './sources';
 import { state, save } from './state';
 import { createTimeline, FIRST_BIRTH } from './timeline';
 import type { Category } from './types';
-import { $, bcls, branchName, esc, fold, injectBranchStyles, label } from './util';
+import { $, bcls, branchName, esc, injectBranchStyles, label } from './util';
 
 injectBranchStyles();
 
@@ -115,9 +116,7 @@ chips.forEach(b => b.onclick = () => {
 branchSel.onchange = () => { state.branch = branchSel.value; syncBranchSw(); refresh(); };
 /** a person by name (exact, else the first containing it), accents and case ignored; false when none matches */
 function findPerson(text: string) {
-  const v = fold(text.trim());
-  if (!v) return false;
-  const p = people.find(p => fold(label(p)) === v) || people.find(p => fold(label(p)).includes(v));
+  const p = matchPerson(people, label, text);
   if (!p) return false;
   if (state.branch && p.branch !== state.branch) {
     state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild(); events.rebuild();
@@ -131,10 +130,9 @@ $<HTMLInputElement>('q').addEventListener('change', ev => { findPerson((ev.targe
 
 /** ?name=Popescu (or ?search=): a family name opens its card, else the matching person, as in the search box */
 function openFromAddress() {
-  const qs = new URLSearchParams(location.search);
-  const v = (qs.get('name') ?? qs.get('search'))?.trim();
+  const v = nameParam(location.search);
   if (!v) return false;
-  const s = SURNAMES.find(s => fold(s.name) === fold(v) || s.variants?.some(x => fold(x) === fold(v)));
+  const s = matchSurname(SURNAMES, v);
   if (s) { card.showSurname(s.name); reveal(); return true; }
   $<HTMLInputElement>('q').value = v;
   return findPerson(v);
