@@ -11,7 +11,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, relative, resolve } from 'node:path';
 import { loadEnv, type Logger, type Plugin } from 'vite';
-import { configPathFor, parseGedcom } from './parse-gedcom';
+import { configPathFor, parseGedcom } from './parse-gedcom.ts';
+import { contentStrings, publishedTranslations, readTranslations, translationsPathFor } from './translations.ts';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { MultiPolygon, Polygon, Position } from 'geojson';
@@ -64,7 +65,7 @@ export default function familyData(): Plugin {
     },
     configureServer(server) {
       // re-parse and reload the page when the tree or its config changes (also outside the project folder)
-      const watched = [gedPath, configPathFor(gedPath)];
+      const watched = [gedPath, configPathFor(gedPath), translationsPathFor(gedPath)];
       server.watcher.add(watched);
       const onChange = (file: string) => {
         if (!watched.includes(resolve(file))) return;
@@ -106,7 +107,10 @@ export default function familyData(): Plugin {
         + result.report.map(c => `- ${c}
 `).join(''));
       clips = new Map(result.data.events.flatMap(e => e.images ?? []).map(f => [f, resolve(result.clipDir, f)]));
-      return `export default ${JSON.stringify({ ...result.data, geo: extractGeo() })};`;
+      // translations of the hand-written texts (<tree>.i18n.json): only entries for texts on the page
+      const i18n = publishedTranslations(readTranslations(translationsPathFor(gedPath)), contentStrings(result.data));
+      log(`translations: ${Object.entries(i18n).map(([l, t]) => `${l} ${Object.keys(t ?? {}).length}`).join(', ')}`);
+      return `export default ${JSON.stringify({ ...result.data, i18n, geo: extractGeo() })};`;
     },
     generateBundle() {
       // dist/clippings/: copies of the linked newspaper pages, next to the page (data/ itself is never published)

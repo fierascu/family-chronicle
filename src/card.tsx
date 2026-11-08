@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { EV, historyLabel, NOW, P, PL, relatives, SURNAMES } from './data';
 import { clipSrc, openClip } from './clips';
 import { visibleEvents } from './globe';
-import { evText, evTitle, L } from './i18n';
+import { evText, evTitle, L, tx } from './i18n';
 import { state } from './state';
 import { bcls, branchName, fmt, label } from './util';
 import type { ChronicleEvent, HistoryEvent, SurnameInfo } from './types';
@@ -100,7 +100,7 @@ function PersonCard({ id, open, openName }: { id: string; open: Open; openName: 
       {p.notes.length > 0 && (
         <div>
           <div class="eyebrow">{L.notes}</div>
-          <p class="x" style={{ margin: '4px 0 0' }}>{p.notes.flatMap((n, i) => i ? [<br />, n] : [n])}</p>
+          <p class="x" style={{ margin: '4px 0 0' }}>{p.notes.map(tx).flatMap((n, i) => i ? [<br />, n] : [n])}</p>
         </div>
       )}
       {life > 0 && (
@@ -112,7 +112,7 @@ function PersonCard({ id, open, openName }: { id: string; open: Open; openName: 
         <div>
           <div class="eyebrow">{L.aboutName}</div>
           <div class="rel" style={{ marginTop: '5px' }}>
-            {surnamesOf(id).map(s => <button key={s.name} onClick={() => openName(s.name)}>{s.name}{s.meaning ? ` · ${s.meaning}` : ''}</button>)}
+            {surnamesOf(id).map(s => <button key={s.name} onClick={() => openName(s.name)}>{s.name}{s.meaning ? ` · ${tx(s.meaning)}` : ''}</button>)}
           </div>
         </div>
       )}
@@ -129,10 +129,10 @@ function EventCard({ e, open }: { e: HistoryEvent; open: Open }) {
     <>
       <Head
         eyebrow={`${L.cat[e.cat]} · ${e.cat === 'fun' ? L.familyStory : L.history}`}
-        title={e.title}
+        title={evTitle(e)}
         meta={`${e.date.y}${e.end ? '–' + e.end : ''}${e.place ? ' · ' + placeLabel(e.place) : ''}`}
       />
-      <p style={{ margin: 0 }}>{e.text}</p>
+      <p style={{ margin: 0 }}>{evText(e)}</p>
       {e.link && <ReadMore href={e.link} />}
       <Relatives title={e.cat === 'fun' ? L.relStory : L.relConcern} ids={e.people} open={open} />
     </>
@@ -153,13 +153,13 @@ function SurnameCard({ s, open }: { s: SurnameInfo; open: Open }) {
       {s.meaning && (
         <div>
           <div class="eyebrow">{L.meaning}</div>
-          <p style={{ margin: '4px 0 0' }}>{s.meaning}</p>
+          <p style={{ margin: '4px 0 0' }}>{tx(s.meaning)}</p>
         </div>
       )}
       {s.origin && (
         <div>
           <div class="eyebrow">{L.origins}</div>
-          <p style={{ margin: '4px 0 0' }}>{s.origin}</p>
+          <p style={{ margin: '4px 0 0' }}>{tx(s.origin)}</p>
         </div>
       )}
       {variants.length > 0 && (
@@ -172,7 +172,7 @@ function SurnameCard({ s, open }: { s: SurnameInfo; open: Open }) {
         <div class="eyebrow">{L.changes}</div>
         <ul class="evlist" style={{ marginTop: '6px' }}>
           {(s.changes ?? []).map((c, i) => (
-            <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{c.text}{c.link && <> <ReadMore href={c.link} /></>}</div></li>
+            <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{tx(c.text)}{c.link && <> <ReadMore href={c.link} /></>}</div></li>
           ))}
           {s.spellings.map(x => (
             <li key={x.spelling}>

@@ -118,5 +118,7 @@ export interface ChronicleData {
   /** the program that exported the GEDCOM and the export date, from its header (the file itself is never published) */
   tree?: { program?: string; exported?: string };
   sources?: SourceInfo[];
+  /** translations of the hand-written texts, by language, keyed by the text as written (<tree>.i18n.json) */
+  i18n?: Partial<Record<string, Record<string, string>>>;
   geo: CountryOutline[];
 }

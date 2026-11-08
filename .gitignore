@@ -13,6 +13,8 @@ data/
 *.[gG][eE][dD][zZ][iI][pP]
 # tree configs hold names, notes and family stories
 *.config.json
+# translations of the notes and stories in a tree
+*.i18n.json
 # password file for a protected page (see public/.htaccess)
 .htpasswd
 

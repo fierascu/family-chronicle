@@ -1,5 +1,5 @@
 import { SOURCE_INFO, TREE } from './data';
-import { L, lang } from './i18n';
+import { L, locale } from './i18n';
 import type { ChronicleEvent } from './types';
 
 /** hosts with a built-in name and description (in i18n.ts, per language); config "sources" adds others or overrides these */
@@ -21,7 +21,7 @@ function infoFor(host: string): { name: string; about: string } {
 /** GEDCOM "04 NOV 2026" → "4 Nov 2026" (or the current language's form) */
 function niceDate(d: string) {
   const t = Date.parse(d);
-  return Number.isNaN(t) ? d : new Date(t).toLocaleDateString(lang === 'en' ? 'en-GB' : lang, { day: 'numeric', month: 'short', year: 'numeric' });
+  return Number.isNaN(t) ? d : new Date(t).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export interface EventSource {
