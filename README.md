@@ -28,6 +28,7 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 - Family names: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
 - The page in English, Romanian, French or Portuguese, or "Original": picked in the header, remembered, or set with `?lang=ro`; otherwise the browser's language. The page's own words and the phrases built from the tree ("Born:", "Married (estimated):", estimated-year notes) are translated in the code; text written by hand (notes, history events, family-name meanings) is translated from a file next to the tree (see [Translations](#translations)). "Original" shows every text as written
+- A link can open a record: `?name=Popescu` (or `?search=Popescu`) opens that family name's card, or else the first person whose name matches, as the search box does; case and accents are ignored. It combines with the language: `?lang=ro&name=Popescu`.
 
 ## Project layout
 

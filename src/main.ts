@@ -19,6 +19,7 @@ import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
 import { CLIPS, openClip, resetClips } from './clips';
 import { createEventList } from './events';
+import { matchPerson, matchSurname, nameParam } from './find';
 import { createGlobe } from './globe';
 import { L, lang, LANG_NAME, LANGS, setLang } from './i18n';
 import type { Lang } from './i18n';
@@ -113,19 +114,29 @@ chips.forEach(b => b.onclick = () => {
   refresh();
 });
 branchSel.onchange = () => { state.branch = branchSel.value; syncBranchSw(); refresh(); };
-$<HTMLInputElement>('q').addEventListener('change', ev => {
-  const v = (ev.target as HTMLInputElement).value.trim().toLowerCase();
-  if (!v) return;
-  const p = people.find(p => label(p).toLowerCase() === v) || people.find(p => label(p).toLowerCase().includes(v));
-  if (!p) return;
+/** a person by name (exact, else the first containing it), accents and case ignored; false when none matches */
+function findPerson(text: string) {
+  const p = matchPerson(people, label, text);
+  if (!p) return false;
   if (state.branch && p.branch !== state.branch) {
     state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild(); events.rebuild();
   }
   card.showPerson(p.id);
   timeline.focusPerson(p.id);
   reveal();
-});
+  return true;
+}
+$<HTMLInputElement>('q').addEventListener('change', ev => { findPerson((ev.target as HTMLInputElement).value); });
 
+/** ?name=Popescu (or ?search=): a family name opens its card, else the matching person, as in the search box */
+function openFromAddress() {
+  const v = nameParam(location.search);
+  if (!v) return false;
+  const s = matchSurname(SURNAMES, v);
+  if (s) { card.showSurname(s.name); reveal(); return true; }
+  $<HTMLInputElement>('q').value = v;
+  return findPerson(v);
+}
 
 /* ---------- History row toggle ---------- */
 const histBtn = $<HTMLButtonElement>('hist-toggle');
@@ -197,4 +208,4 @@ globe.drawPins();
 // opening event: config startEvent (title prefix), else the first plausible history event, else the first event
 const first = (SET.startEvent && EV.find(e => e.title.startsWith(SET.startEvent!)))
   || EV.find(e => e.kind === 'history' && e.cat === 'plausible') || EV[0];
-if (first) card.showEvent(first.id);
+if (!openFromAddress() && first) card.showEvent(first.id);
