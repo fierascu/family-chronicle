@@ -26,7 +26,7 @@ import { treeAbout } from './sources';
 import { state, save } from './state';
 import { createTimeline, FIRST_BIRTH } from './timeline';
 import type { Category } from './types';
-import { $, bcls, branchName, esc, injectBranchStyles, label } from './util';
+import { $, bcls, branchName, esc, fold, injectBranchStyles, label } from './util';
 
 injectBranchStyles();
 
@@ -113,19 +113,32 @@ chips.forEach(b => b.onclick = () => {
   refresh();
 });
 branchSel.onchange = () => { state.branch = branchSel.value; syncBranchSw(); refresh(); };
-$<HTMLInputElement>('q').addEventListener('change', ev => {
-  const v = (ev.target as HTMLInputElement).value.trim().toLowerCase();
-  if (!v) return;
-  const p = people.find(p => label(p).toLowerCase() === v) || people.find(p => label(p).toLowerCase().includes(v));
-  if (!p) return;
+/** a person by name (exact, else the first containing it), accents and case ignored; false when none matches */
+function findPerson(text: string) {
+  const v = fold(text.trim());
+  if (!v) return false;
+  const p = people.find(p => fold(label(p)) === v) || people.find(p => fold(label(p)).includes(v));
+  if (!p) return false;
   if (state.branch && p.branch !== state.branch) {
     state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild(); events.rebuild();
   }
   card.showPerson(p.id);
   timeline.focusPerson(p.id);
   reveal();
-});
+  return true;
+}
+$<HTMLInputElement>('q').addEventListener('change', ev => { findPerson((ev.target as HTMLInputElement).value); });
 
+/** ?name=Popescu (or ?search=): a family name opens its card, else the matching person, as in the search box */
+function openFromAddress() {
+  const qs = new URLSearchParams(location.search);
+  const v = (qs.get('name') ?? qs.get('search'))?.trim();
+  if (!v) return false;
+  const s = SURNAMES.find(s => fold(s.name) === fold(v) || s.variants?.some(x => fold(x) === fold(v)));
+  if (s) { card.showSurname(s.name); reveal(); return true; }
+  $<HTMLInputElement>('q').value = v;
+  return findPerson(v);
+}
 
 /* ---------- History row toggle ---------- */
 const histBtn = $<HTMLButtonElement>('hist-toggle');
@@ -197,4 +210,4 @@ globe.drawPins();
 // opening event: config startEvent (title prefix), else the first plausible history event, else the first event
 const first = (SET.startEvent && EV.find(e => e.title.startsWith(SET.startEvent!)))
   || EV.find(e => e.kind === 'history' && e.cat === 'plausible') || EV[0];
-if (first) card.showEvent(first.id);
+if (!openFromAddress() && first) card.showEvent(first.id);

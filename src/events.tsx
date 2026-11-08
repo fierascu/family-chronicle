@@ -5,7 +5,7 @@ import { evTitle, L, lang, locale } from './i18n';
 import { sourceOf } from './sources';
 import type { EventSource } from './sources';
 import { state } from './state';
-import { fmt, label } from './util';
+import { fmt, fold, label } from './util';
 import type { ChronicleEvent } from './types';
 
 export interface EventListView {
@@ -14,7 +14,6 @@ export interface EventListView {
 }
 
 /** lower case, without diacritics, so "fierascu" finds "Fierăscu" */
-const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 const peopleOf = (e: ChronicleEvent) =>
   (e.kind === 'family' ? [e.person, e.partner] : e.people).filter((id): id is string => !!id && !!P[id]);
