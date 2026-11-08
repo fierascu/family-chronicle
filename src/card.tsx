@@ -69,11 +69,9 @@ function Relatives({ title, ids, open }: { title: string; ids: (string | undefin
   const known = ids.filter((id): id is string => !!id && !!P[id]);
   if (!known.length) return null;
   return (
-    <div>
-      <div class="eyebrow">{title}</div>
-      <div class="rel" style={{ marginTop: '5px' }}>
-        {known.map(id => <button key={id} onClick={() => open(id)}>{label(P[id])}</button>)}
-      </div>
+    <div class="rel">
+      <span class="eyebrow">{title}</span>
+      {known.map(id => <button key={id} onClick={() => open(id)}>{label(P[id])}</button>)}
     </div>
   );
 }

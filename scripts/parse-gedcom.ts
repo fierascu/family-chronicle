@@ -11,7 +11,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { ChronicleData, DateValue, Settings, SurnameInfo } from '../src/types';
+import type { ChronicleData, DateValue, Settings, SourceInfo, SurnameInfo } from '../src/types';
 
 // ---- config file shape (every key optional) ----
 interface Config {
@@ -23,6 +23,7 @@ interface Config {
   history?: { cat: string; start: number; end?: number; place?: string; title: string; text?: string; link?: string; people?: string[] }[];
   surnames?: Record<string, Omit<SurnameInfo, 'name' | 'people' | 'spellings'>>;
   placeNotes?: { text: string; rawPlaceContains: string[] }[];
+  sources?: Record<string, Omit<SourceInfo, 'host'>>;
 }
 
 /** One GEDCOM line with its sub-lines */
@@ -185,6 +186,13 @@ export function parseGedcom(gedPath: string): ParseResult {
   const PROTECT = SETTINGS.livingPeople !== 'full';
 
   const recs = readTree(readText(gedPath));
+  // ---- header: which program exported the tree, and when (shown under "Sources") ----
+  const head = recs.find(r => r.tag === 'HEAD');
+  const headSour = head?.kids.find(k => k.tag === 'SOUR');
+  const tree = {
+    program: headSour?.kids.find(k => k.tag === 'NAME')?.val.trim() || headSour?.val.trim() || undefined,
+    exported: head?.kids.find(k => k.tag === 'DATE')?.val.trim() || undefined,
+  };
 
   // ---- places: config "places"/"placeRules", plus coordinates given in the GEDCOM (PLAC > MAP > LATI/LONG) ----
   const PLACES = new Map<string, { label: string; lat: number; lon: number; approx: boolean }>(
@@ -520,6 +528,8 @@ export function parseGedcom(gedPath: string): ParseResult {
     settings: { historyLabel: SETTINGS.historyLabel, homeCountry: SETTINGS.homeCountry,
       timelineStart: SETTINGS.timelineStart, startEvent: SETTINGS.startEvent,
       livingPeople: SETTINGS.livingPeople, causeOfDeath: SETTINGS.causeOfDeath },
+    tree,
+    sources: Object.entries(CFG.sources ?? {}).map(([host, v]) => ({ host, ...v })),
   };
 
   const evCounts = counts(events.map(e => `${e.kind}/${e.cat}`));

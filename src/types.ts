@@ -95,6 +95,13 @@ export interface Settings {
   causeOfDeath?: boolean;
 }
 
+/** config "sources": a readable name and description for links to one site (keyed by host name) */
+export interface SourceInfo {
+  host: string;
+  name?: string;
+  about?: string;
+}
+
 export interface CountryOutline {
   name: string;
   polys: number[][][][];
@@ -108,5 +115,8 @@ export interface ChronicleData {
   branches?: string[];
   surnames?: SurnameInfo[];
   settings?: Settings;
+  /** the program that exported the GEDCOM and the export date, from its header (the file itself is never published) */
+  tree?: { program?: string; exported?: string };
+  sources?: SourceInfo[];
   geo: CountryOutline[];
 }
