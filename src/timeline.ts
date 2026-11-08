@@ -1,8 +1,9 @@
 import { DataSet, Timeline } from 'vis-timeline/standalone';
 import type { DataGroup, DataItem } from 'vis-timeline/standalone';
-import { BRANCHES, EV, HISTORY_LABEL, NOW, P, SET, people } from './data';
+import { BRANCHES, EV, historyLabel, NOW, P, SET, people } from './data';
+import { evTitle } from './i18n';
 import { state } from './state';
-import { bcls, esc, fmt, label, swatch, toDate } from './util';
+import { bcls, branchName, esc, fmt, label, swatch, toDate } from './util';
 
 export interface TimelineView {
   rebuild(): void;
@@ -23,13 +24,15 @@ export function createTimeline(
   el: HTMLElement,
   on: { person(id: string): void; event(id: string): void; range(): void },
 ): TimelineView {
+  const groupLabel = (b: string) => {
+    if (b === 'History') return esc(historyLabel());
+    const span = document.createElement('span');
+    span.innerHTML = swatch(b) + esc(branchName(b));
+    return span;
+  };
   const groups = new DataSet<DataGroup>([
-    { id: 'History', content: esc(HISTORY_LABEL), order: 0 } as DataGroup,
-    ...BRANCHES.map((b, i) => {
-      const span = document.createElement('span');
-      span.innerHTML = swatch(b) + esc(b);
-      return { id: b, content: span, order: i + 1 } as DataGroup;
-    }),
+    { id: 'History', content: groupLabel('History'), order: 0 } as DataGroup,
+    ...BRANCHES.map((b, i) => ({ id: b, content: groupLabel(b), order: i + 1 }) as DataGroup),
   ]);
   const items = new DataSet<DataItem>();
 
@@ -54,7 +57,7 @@ export function createTimeline(
         const p = P[e.person];
         if (state.branch && p.branch !== state.branch) continue;
         out.push({ id: e.id, group: p.branch, type: 'point', start: toDate(e.date), content: '', className: e.cat,
-          title: esc(`${fmt(e.date)} · ${e.title}`) });
+          title: esc(`${fmt(e.date)} · ${evTitle(e)}`) });
       } else {
         if (!state.hist) continue;
         // a point with its label beside it: titles inside short range bars were cut to a few letters
@@ -70,7 +73,7 @@ export function createTimeline(
     items.clear();
     items.add(out);
     groups.forEach(g => groups.update({
-      id: g.id, visible: g.id === 'History' ? state.hist : !state.branch || g.id === state.branch,
+      id: g.id, content: groupLabel(String(g.id)), visible: g.id === 'History' ? state.hist : !state.branch || g.id === state.branch,
     }));
   }
   rebuild();

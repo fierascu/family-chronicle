@@ -1,10 +1,11 @@
 import { render } from 'preact';
 import type { ComponentChildren } from 'preact';
-import { EV, HISTORY_LABEL, NOW, P, PL, relatives, SURNAMES } from './data';
+import { EV, historyLabel, NOW, P, PL, relatives, SURNAMES } from './data';
 import { clipSrc, openClip } from './clips';
 import { visibleEvents } from './globe';
+import { evText, evTitle, L } from './i18n';
 import { state } from './state';
-import { bcls, CAT_LABEL, fmt, label } from './util';
+import { bcls, branchName, fmt, label } from './util';
 import type { ChronicleEvent, HistoryEvent, SurnameInfo } from './types';
 
 export interface CardView {
@@ -12,6 +13,8 @@ export interface CardView {
   showEvent(id: string): void;
   showPlace(key: string): void;
   showSurname(name: string): void;
+  /** draw the shown record again, e.g. after the language changes */
+  refresh(): void;
 }
 
 type Open = (personId: string) => void;
@@ -25,7 +28,7 @@ const placeLabel = (k: string) => PL[k]?.label || k;
 
 const Swatch = ({ branch }: { branch: string }) => <span class={`sw ${bcls(branch)}`} aria-hidden="true" />;
 
-const ReadMore = ({ href }: { href: string }) => <a href={href} target="_blank" rel="noopener">Read more ↗</a>;
+const ReadMore = ({ href }: { href: string }) => <a href={href} target="_blank" rel="noopener">{L.readMore}</a>;
 
 function Head({ eyebrow, title, meta }: { eyebrow: ComponentChildren; title: string; meta: ComponentChildren }) {
   return (
@@ -43,17 +46,17 @@ function EvRow({ e, open }: { e: ChronicleEvent; open?: Open }) {
   return (
     <li>
       <span class="yr">{yr}</span>
-      <span class={`g ${e.cat}`} title={CAT_LABEL[e.cat]} />
+      <span class={`g ${e.cat}`} title={L.cat[e.cat]} />
       <div>
         <div class="t" style={pid ? { cursor: 'pointer' } : undefined} onClick={pid ? () => open(pid) : undefined}>
-          {e.title}{e.place && <span class="x"> · {placeLabel(e.place)}</span>}
+          {evTitle(e)}{e.place && <span class="x"> · {placeLabel(e.place)}</span>}
         </div>
-        {e.text && <div class="x">{e.text}</div>}
+        {e.text && <div class="x">{evText(e)}</div>}
         {e.link && <div class="x"><ReadMore href={e.link} /></div>}
         {e.images?.length ? (
           <div class="clips">
             {e.images.map(f => (
-              <button type="button" key={f} class="clip" aria-label={`Open newspaper page ${f}`} onClick={() => openClip(e, f)}>
+              <button type="button" key={f} class="clip" aria-label={L.openPage(f)} onClick={() => openClip(e, f)}>
                 <img loading="lazy" src={clipSrc(f)} alt="" />
               </button>
             ))}
@@ -87,36 +90,36 @@ function PersonCard({ id, open, openName }: { id: string; open: Open; openName: 
   return (
     <>
       <Head
-        eyebrow={<><Swatch branch={p.branch} />{p.branch} branch</>}
+        eyebrow={<><Swatch branch={p.branch} />{L.branchOf(branchName(p.branch))}</>}
         title={label(p)}
-        meta={`${p.by ? (p.byEst ? 'c. ' : '') + p.by : '?'} – ${p.dy || (p.dead ? '?' : '')}${p.living ? ' · may be living' : ''}`}
+        meta={`${p.by ? (p.byEst ? L.circa + ' ' : '') + p.by : '?'} – ${p.dy || (p.dead ? '?' : '')}${p.living ? ' · ' + L.mayBeLiving : ''}`}
       />
       {evs.length
         ? <ul class="evlist">{evs.map(e => <EvRow key={e.id} e={e} />)}</ul>
-        : <p class="empty">No events with a date or place yet.</p>}
+        : <p class="empty">{L.noEvents}</p>}
       {p.notes.length > 0 && (
         <div>
-          <div class="eyebrow">Notes from the tree</div>
+          <div class="eyebrow">{L.notes}</div>
           <p class="x" style={{ margin: '4px 0 0' }}>{p.notes.flatMap((n, i) => i ? [<br />, n] : [n])}</p>
         </div>
       )}
       {life > 0 && (
         <p class="hint" style={{ margin: 0 }}>
-          {life} context events fall within this lifetime. They show on the {HISTORY_LABEL} row of the timeline.
+          {L.lifeCtx(life, historyLabel())}
         </p>
       )}
       {surnamesOf(id).length > 0 && (
         <div>
-          <div class="eyebrow">About the family name</div>
+          <div class="eyebrow">{L.aboutName}</div>
           <div class="rel" style={{ marginTop: '5px' }}>
             {surnamesOf(id).map(s => <button key={s.name} onClick={() => openName(s.name)}>{s.name}{s.meaning ? ` · ${s.meaning}` : ''}</button>)}
           </div>
         </div>
       )}
-      <Relatives title="Parents" ids={f.parents} open={open} />
-      <Relatives title="Spouses" ids={f.spouses} open={open} />
-      <Relatives title="Children" ids={f.kids} open={open} />
-      <Relatives title="Siblings" ids={f.sibs} open={open} />
+      <Relatives title={L.parents} ids={f.parents} open={open} />
+      <Relatives title={L.spouses} ids={f.spouses} open={open} />
+      <Relatives title={L.children} ids={f.kids} open={open} />
+      <Relatives title={L.siblings} ids={f.sibs} open={open} />
     </>
   );
 }
@@ -125,13 +128,13 @@ function EventCard({ e, open }: { e: HistoryEvent; open: Open }) {
   return (
     <>
       <Head
-        eyebrow={`${CAT_LABEL[e.cat]} · ${e.cat === 'fun' ? 'family story' : 'history'}`}
+        eyebrow={`${L.cat[e.cat]} · ${e.cat === 'fun' ? L.familyStory : L.history}`}
         title={e.title}
         meta={`${e.date.y}${e.end ? '–' + e.end : ''}${e.place ? ' · ' + placeLabel(e.place) : ''}`}
       />
       <p style={{ margin: 0 }}>{e.text}</p>
       {e.link && <ReadMore href={e.link} />}
-      <Relatives title={e.cat === 'fun' ? 'Relatives in this story' : 'Relatives this may concern'} ids={e.people} open={open} />
+      <Relatives title={e.cat === 'fun' ? L.relStory : L.relConcern} ids={e.people} open={open} />
     </>
   );
 }
@@ -143,47 +146,47 @@ function SurnameCard({ s, open }: { s: SurnameInfo; open: Open }) {
   return (
     <>
       <Head
-        eyebrow="Family name"
+        eyebrow={L.familyName}
         title={s.name}
-        meta={`${s.people.length} ${s.people.length === 1 ? 'person' : 'people'} in the tree${years.length ? ` · born ${Math.min(...years)}–${Math.max(...years)}` : ''}`}
+        meta={L.inTree(s.people.length) + (years.length ? L.bornSpan(Math.min(...years), Math.max(...years)) : '')}
       />
       {s.meaning && (
         <div>
-          <div class="eyebrow">What the name suggests</div>
+          <div class="eyebrow">{L.meaning}</div>
           <p style={{ margin: '4px 0 0' }}>{s.meaning}</p>
         </div>
       )}
       {s.origin && (
         <div>
-          <div class="eyebrow">Origins</div>
+          <div class="eyebrow">{L.origins}</div>
           <p style={{ margin: '4px 0 0' }}>{s.origin}</p>
         </div>
       )}
       {variants.length > 0 && (
         <div>
-          <div class="eyebrow">Variations</div>
+          <div class="eyebrow">{L.variations}</div>
           <p style={{ margin: '4px 0 0' }}>{variants.join(' · ')}</p>
         </div>
       )}
       <div>
-        <div class="eyebrow">Changes over time</div>
+        <div class="eyebrow">{L.changes}</div>
         <ul class="evlist" style={{ marginTop: '6px' }}>
           {(s.changes ?? []).map((c, i) => (
             <li key={'c' + i}><span class="yr">{c.when}</span><span /><div class="x">{c.text}{c.link && <> <ReadMore href={c.link} /></>}</div></li>
           ))}
           {s.spellings.map(x => (
             <li key={x.spelling}>
-              <span class="yr">{x.from ? `from ${x.from}` : '?'}</span><span />
-              <div class="x">Spelled <b>{x.spelling}</b> in this tree ({s.people.filter(id => P[id].surname === x.spelling || P[id].married === x.spelling).length})</div>
+              <span class="yr">{x.from ? L.from(x.from) : '?'}</span><span />
+              <div class="x">{L.spelled[0]} <b>{x.spelling}</b> {L.spelled[1](s.people.filter(id => P[id].surname === x.spelling || P[id].married === x.spelling).length)}</div>
             </li>
           ))}
         </ul>
       </div>
       {!described && (
-        <p class="hint" style={{ margin: 0 }}>Nothing written about this name yet. Add it under <code>surnames</code> in the config file.</p>
+        <p class="hint" style={{ margin: 0 }}>{L.noName[0]} <code>surnames</code> {L.noName[1]}</p>
       )}
       {s.link && <ReadMore href={s.link} />}
-      <Relatives title="People with this name" ids={s.people} open={open} />
+      <Relatives title={L.withName} ids={s.people} open={open} />
     </>
   );
 }
@@ -194,9 +197,9 @@ function PlaceCard({ k, open }: { k: string; open: Open }) {
   return (
     <>
       <Head
-        eyebrow={`Place · ${state.win[0]}–${state.win[1]}`}
+        eyebrow={`${L.place} · ${state.win[0]}–${state.win[1]}`}
         title={pl.label}
-        meta={`${pl.lat.toFixed(2)}° N, ${pl.lon.toFixed(2)}° E${pl.approx ? ' · approximate location' : ''}`}
+        meta={`${pl.lat.toFixed(2)}° N, ${pl.lon.toFixed(2)}° E${pl.approx ? ' · ' + L.approx : ''}`}
       />
       <ul class="evlist">{evs.map(e => <EvRow key={e.id} e={e} open={open} />)}</ul>
     </>
@@ -209,10 +212,13 @@ export function createCard(
 ): CardView {
   /** a relative's button, or a person's row on a place card */
   const open: Open = id => { showPerson(id); on.personShown(id); };
+  /** draws the record now shown; kept so a language change can draw it again */
+  let draw = () => {};
+  const show = (d: () => void) => { draw = d; d(); };
 
   function showPerson(id: string) {
     state.sel = id;
-    render(<PersonCard key={id} id={id} open={open} openName={showSurname} />, card);
+    show(() => render(<PersonCard key={id} id={id} open={open} openName={showSurname} />, card));
     on.changed();
   }
 
@@ -221,19 +227,19 @@ export function createCard(
     if (!e) return;
     if (e.kind === 'family') { showPerson(e.person); return; }
     state.sel = null;
-    render(<EventCard key={id} e={e} open={open} />, card);
+    show(() => render(<EventCard key={id} e={e} open={open} />, card));
     on.changed();
   }
 
   function showPlace(k: string) {
-    render(<PlaceCard key={k} k={k} open={open} />, card);
+    show(() => render(<PlaceCard key={k} k={k} open={open} />, card));
   }
 
   function showSurname(name: string) {
     const s = SURNAMES.find(x => x.name === name);
     if (!s) return;
-    render(<SurnameCard key={'n' + name} s={s} open={open} />, card);
+    show(() => render(<SurnameCard key={'n' + name} s={s} open={open} />, card));
   }
 
-  return { showPerson, showEvent, showPlace, showSurname };
+  return { showPerson, showEvent, showPlace, showSurname, refresh: () => draw() };
 }

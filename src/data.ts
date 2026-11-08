@@ -1,4 +1,5 @@
 import DATA from 'virtual:family-data';
+import { L } from './i18n';
 import type { ChronicleEvent, Person } from './types';
 
 export const P = DATA.people;
@@ -13,7 +14,8 @@ export const SOURCE_INFO = DATA.sources ?? [];
 export const NOW = new Date().getFullYear();
 export const people: Person[] = Object.values(P);
 export const HOME = SET.homeCountry || 'Romania';
-export const HISTORY_LABEL = SET.historyLabel || 'History';
+/** the timeline's history row: config historyLabel, else "History" in the current language */
+export const historyLabel = () => SET.historyLabel || L.historyRow;
 
 // Branch list comes from the parser ("branches"); fall back to the people's branches for older data files
 export const BRANCHES: string[] = DATA.branches ?? (() => {

@@ -20,6 +20,7 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 - The Privacy section names the program and date of the tree export; the GEDCOM file itself is never published
 - Family names: what each surname suggests, its origins, variations and changes over time, plus the spellings found in the tree
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
+- The page in English, Romanian, French or Portuguese: picked in the header, remembered, or set with `?lang=ro`; otherwise the browser's language. The page's own words and the phrases built from the tree ("Born:", "Married (estimated):", estimated-year notes) are translated; text written by hand (notes, history events, family-name meanings) is shown as written
 
 ## Project layout
 
@@ -32,6 +33,7 @@ src/                the app in TypeScript (no family data)
   card.tsx            record card (Preact) (person, event, place)
   events.tsx          events list (Preact): sort, text filter, source and link columns
   sources.ts          where an event comes from (linked site or the tree file)
+  i18n.ts             the page's words in English, Romanian, French and Portuguese
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
   style.css

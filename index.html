@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Family Chronicle</title>
@@ -7,46 +7,47 @@
 <meta name="robots" content="noindex, nofollow">
 </head>
 <body>
-
+<!-- Text in data-i18n (and data-i18n-attr: "attribute:key; …") is filled from src/i18n.ts in the chosen language -->
 <div class="wrap">
   <header>
     <div>
-      <h1>Family Chronicle</h1>
+      <h1 data-i18n="title">Family Chronicle</h1>
       <p class="sub" id="stats"></p>
     </div>
-    <div class="controls" role="group" aria-label="Filters">
-      <button class="chip" id="c-sure" aria-pressed="true" data-cat="sure"><span class="g sure"></span>Sure</button>
-      <button class="chip" id="c-plaus" aria-pressed="true" data-cat="plausible"><span class="g plausible"></span>Plausible</button>
-      <button class="chip" id="c-ctx" aria-pressed="true" data-cat="context"><span class="g context"></span>Context</button>
-      <button class="chip" id="c-fun" aria-pressed="true" data-cat="fun"><span class="g fun"></span>Fun</button>
-      <button class="chip help" type="button" id="help" aria-controls="legend" aria-label="What the categories mean">?</button>
+    <div class="controls" role="group" data-i18n-attr="aria-label:filters">
+      <button class="chip" id="c-sure" aria-pressed="true" data-cat="sure"><span class="g sure"></span><span data-i18n="cat.sure">Sure</span></button>
+      <button class="chip" id="c-plaus" aria-pressed="true" data-cat="plausible"><span class="g plausible"></span><span data-i18n="cat.plausible">Plausible</span></button>
+      <button class="chip" id="c-ctx" aria-pressed="true" data-cat="context"><span class="g context"></span><span data-i18n="cat.context">Context</span></button>
+      <button class="chip" id="c-fun" aria-pressed="true" data-cat="fun"><span class="g fun"></span><span data-i18n="cat.fun">Fun</span></button>
+      <button class="chip help" type="button" id="help" aria-controls="legend" data-i18n-attr="aria-label:help; title:help">?</button>
       <button class="chip" id="c-clips" type="button" hidden>Newspaper clippings</button>
-      <label class="hint" for="branch"><span class="sw" id="branch-sw" hidden></span>Branch</label>
-      <select id="branch"><option value="">All branches</option></select>
-      <input type="search" id="q" placeholder="Find a person…" aria-label="Find a person" list="names">
+      <label class="hint" for="branch"><span class="sw" id="branch-sw" hidden></span><span data-i18n="branch">Branch</span></label>
+      <select id="branch"><option value="" data-i18n="allBranches">All branches</option></select>
+      <input type="search" id="q" list="names" data-i18n-attr="placeholder:findPerson; aria-label:findPerson">
       <datalist id="names"></datalist>
+      <select id="lang" class="lang" data-i18n-attr="aria-label:lang; title:lang"></select>
     </div>
   </header>
 
-  <nav class="names" aria-label="Family names" title="What each name suggests, where it comes from, its variations and how it changed">
-    <span class="names-label">Family names</span>
+  <nav class="names" data-i18n-attr="aria-label:familyNames; title:namesTitle">
+    <span class="names-label" data-i18n="familyNames">Family names</span>
     <div class="names-row" id="surnames"></div>
   </nav>
 
   <main class="main">
-      <section class="panel stage" aria-label="Family chronicle views">
-        <div class="tabs" role="tablist" aria-label="Views">
-          <button type="button" role="tab" id="tab-timeline" aria-controls="p-timeline" data-tab="timeline">Timeline</button>
-          <button type="button" role="tab" id="tab-events" aria-controls="p-events" data-tab="events">Events</button>
-          <button type="button" role="tab" id="tab-places" aria-controls="p-places" data-tab="places">Places</button>
+      <section class="panel stage" data-i18n-attr="aria-label:stage">
+        <div class="tabs" role="tablist" data-i18n-attr="aria-label:views">
+          <button type="button" role="tab" id="tab-timeline" aria-controls="p-timeline" data-tab="timeline" data-i18n="tab.timeline">Timeline</button>
+          <button type="button" role="tab" id="tab-events" aria-controls="p-events" data-tab="events" data-i18n="tab.events">Events</button>
+          <button type="button" role="tab" id="tab-places" aria-controls="p-places" data-tab="places" data-i18n="tab.places">Places</button>
         </div>
 
         <div class="tabpanel" id="p-timeline" role="tabpanel" aria-labelledby="tab-timeline">
           <div class="tlhead">
-            <span class="hint" id="tl-hint">Drag or pinch to move and zoom · tap to open a record</span>
-            <button class="chip small" id="hist-toggle" type="button" aria-pressed="true">History row</button>
+            <span class="hint" id="tl-hint" data-i18n="tlHint">Drag or pinch to move and zoom · tap to open a record</span>
+            <button class="chip small" id="hist-toggle" type="button" aria-pressed="true" data-i18n="histRow">History row</button>
           </div>
-          <div id="tl"><p class="loading">Loading the timeline…</p></div>
+          <div id="tl"><p class="loading" data-i18n="loading">Loading the timeline…</p></div>
         </div>
 
         <div class="tabpanel" id="p-events" role="tabpanel" aria-labelledby="tab-events" hidden>
@@ -55,41 +56,41 @@
 
         <div class="tabpanel mapbox" id="p-places" role="tabpanel" aria-labelledby="tab-places" hidden>
           <div class="tlhead">
-            <span class="hint">Drag to turn · pinch, scroll or +/− to zoom · numbered circles are several places: tap to zoom in</span>
+            <span class="hint" data-i18n="placesHint">Drag to turn · pinch, scroll or +/− to zoom · numbered circles are several places: tap to zoom in</span>
             <span class="hint meta" id="span"></span>
           </div>
           <div class="globe-wrap">
             <canvas id="globe-canvas"></canvas>
-            <svg id="map" role="img" aria-label="Globe of family places" style="background:transparent"></svg>
-            <div class="zoom" role="group" aria-label="Map zoom">
-              <button type="button" id="z-in" aria-label="Zoom in">+</button>
-              <button type="button" id="z-out" aria-label="Zoom out">−</button>
-              <button type="button" id="z-home" aria-label="Back to Romania" title="Back to Romania">⟲</button>
+            <svg id="map" role="img" data-i18n-attr="aria-label:globe" style="background:transparent"></svg>
+            <div class="zoom" role="group" data-i18n-attr="aria-label:mapZoom">
+              <button type="button" id="z-in" data-i18n-attr="aria-label:zoomIn">+</button>
+              <button type="button" id="z-out" data-i18n-attr="aria-label:zoomOut">−</button>
+              <button type="button" id="z-home" data-i18n-attr="aria-label:home; title:home">⟲</button>
             </div>
           </div>
           <div class="abroad" id="abroad"></div>
         </div>
       </section>
 
-      <section class="panel card" id="card" aria-live="polite" aria-label="Record"></section>
+      <section class="panel card" id="card" aria-live="polite" data-i18n-attr="aria-label:record"></section>
     </main>
 
   <div class="foot">
     <section class="panel" id="checks-panel" hidden>
-      <h2>Things to fix in the tree</h2>
+      <h2 data-i18n="checks">Things to fix in the tree</h2>
       <ul id="checks"></ul>
     </section>
     <details class="panel legend" id="legend">
-      <summary>How events are sorted</summary>
+      <summary data-i18n="legend">How events are sorted</summary>
       <dl>
-        <dt><span class="g sure"></span>Sure</dt><dd>A dated fact recorded in the tree: birth, death, marriage.</dd>
-        <dt><span class="g plausible"></span>Plausible</dt><dd>Estimated dates (from children, siblings or notes), or a historical event that very likely touched a named relative. Each one says what to check.</dd>
-        <dt><span class="g context"></span>Context</dt><dd>History of the places and times the family lived through, with no claimed personal link.</dd>
-        <dt><span class="g fun"></span>Fun</dt><dd>Family stories, firsts and curiosities: the first TV, a famous recipe, a legendary trip. Told for enjoyment, not checked like the rest.</dd>
+        <dt><span class="g sure"></span><span data-i18n="cat.sure">Sure</span></dt><dd data-i18n="legendText.sure"></dd>
+        <dt><span class="g plausible"></span><span data-i18n="cat.plausible">Plausible</span></dt><dd data-i18n="legendText.plausible"></dd>
+        <dt><span class="g context"></span><span data-i18n="cat.context">Context</span></dt><dd data-i18n="legendText.context"></dd>
+        <dt><span class="g fun"></span><span data-i18n="cat.fun">Fun</span></dt><dd data-i18n="legendText.fun"></dd>
       </dl>
     </details>
     <details class="panel legend">
-      <summary>Privacy</summary>
+      <summary data-i18n="privacy">Privacy</summary>
       <p class="hint" id="privacy"></p>
     </details>
   </div>

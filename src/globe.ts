@@ -7,6 +7,7 @@ import land110Url from 'world-atlas/land-110m.json?url';
 import land50Url from 'world-atlas/land-50m.json?url';
 import countries10Url from 'world-atlas/countries-10m.json?url';
 import { EV, GEO, HOME, NOW, P, PL, people, personPath } from './data';
+import { L } from './i18n';
 import { state } from './state';
 import { bcls } from './util';
 import type { ChronicleEvent, Category, CountryOutline } from './types';
@@ -239,8 +240,8 @@ export function createGlobe(
     const many = (d: Pin) => d.keys.length > 1;
     const isSel = (d: Pin) => d.keys.some(k => selPlaces.has(k));
     const desc = (d: Pin) => many(d)
-      ? `${d.keys.length} places (${d.keys.map(placeName).join(', ')}), ${d.evs.length} events. Click to zoom in`
-      : `${PL[d.k].label}, ${d.evs.length} event${d.evs.length > 1 ? 's' : ''}`;
+      ? L.pinMany(d.keys.length, d.keys.map(placeName).join(', '), d.evs.length)
+      : L.pinOne(PL[d.k].label, d.evs.length);
 
     const g = pinG.selectAll<SVGGElement, Pin>('g').data(pins, d => d.keys.join('|')).join(enter => {
       const e = enter.append('g');
