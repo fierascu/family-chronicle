@@ -1,0 +1,107 @@
+name: Deploy (FTP)
+
+# Builds the page and uploads dist/ to an FTP server.
+# Runs on demand (Actions tab > Deploy (FTP) > Run workflow) and after each push to main.
+#
+# Repository secrets (Settings > Secrets and variables > Actions):
+#   FTP_SERVER     host name, e.g. ftp.example.com
+#   FTP_USERNAME
+#   FTP_PASSWORD
+#   TREE_GED       optional: your GEDCOM export, base64-encoded (gzip it first if it's large)
+#   TREE_CONFIG    optional: data/tree.config.json, base64-encoded (gzip optional)
+#   TREE_I18N      optional: data/tree.i18n.json, base64-encoded (gzip optional)
+# Without TREE_GED the fictional demo tree is deployed.
+#
+# Repository variables (optional):
+#   FTP_PROTOCOL   ftps (default), ftp or ftps-legacy
+#   FTP_PORT       default 21
+#   FTP_SERVER_DIR folder on the server, ending in /, default ./
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# never run two uploads to the same server at once
+concurrency:
+  group: deploy-ftp
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check FTP settings
+        id: ftp
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run: |
+          if [ -z "$FTP_SERVER" ]; then
+            echo "::warning::FTP_SERVER secret is not set; skipping the deploy."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No family data in the repository
+        if: steps.ftp.outputs.configured == 'true'
+        run: scripts/check_no_family_data.sh
+
+      - uses: actions/setup-node@v4
+        if: steps.ftp.outputs.configured == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - if: steps.ftp.outputs.configured == 'true'
+        run: npm ci
+      - if: steps.ftp.outputs.configured == 'true'
+        run: npm run typecheck
+      - if: steps.ftp.outputs.configured == 'true'
+        run: npm test
+
+      - name: Write the family tree from secrets
+        if: steps.ftp.outputs.configured == 'true'
+        env:
+          TREE_GED: ${{ secrets.TREE_GED }}
+          TREE_CONFIG: ${{ secrets.TREE_CONFIG }}
+          TREE_I18N: ${{ secrets.TREE_I18N }}
+        run: |
+          # base64 -> file; gzip -dcf unpacks gzipped input and passes plain input through
+          set -euo pipefail
+          write() {
+            if [ -n "$2" ]; then
+              printf '%s' "$2" | base64 -d | gzip -dcf > "data/$1"
+              echo "wrote data/$1"
+            fi
+          }
+          mkdir -p data
+          write tree.ged "$TREE_GED"
+          write tree.config.json "$TREE_CONFIG"
+          write tree.i18n.json "$TREE_I18N"
+          [ -f data/tree.ged ] || echo "::notice::TREE_GED is not set; deploying the demo tree."
+
+      - name: Build
+        if: steps.ftp.outputs.configured == 'true'
+        run: npm run build
+
+      - name: Upload dist/ to the FTP server
+        if: steps.ftp.outputs.configured == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ vars.FTP_PORT || 21 }}
+          local-dir: ./dist/
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+
+      - name: Remove the family tree from the runner
+        if: always()
+        run: rm -rf data build dist

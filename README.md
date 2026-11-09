@@ -233,6 +233,22 @@ The tests write their trees to temporary folders and never read `data/`.
 
 Upload the contents of `dist/` (including the hidden `.htaccess`). Asset URLs are relative, so any sub-folder works.
 
+### From GitHub Actions (FTP)
+
+`.github/workflows/deploy.yml` runs the checks and tests, builds the page and uploads `dist/` over FTP, after each push to `main` or on demand (Actions tab > Deploy (FTP) > Run workflow). It is skipped until the FTP secrets are set. In Settings > Secrets and variables > Actions, add:
+
+| Secret | |
+|---|---|
+| `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` | the FTP account |
+| `TREE_GED` | optional: your GEDCOM, base64-encoded. Without it, the demo tree is deployed |
+| `TREE_CONFIG`, `TREE_I18N` | optional: `data/tree.config.json` and `data/tree.i18n.json`, base64-encoded |
+
+The tree never enters the repository: it is written to `data/` on the runner, built, and deleted. A secret holds at most 48 KB, so gzip a large file first (the workflow unpacks it): `gzip -c data/tree.ged | base64 -w0` (on macOS, `base64 -i -`). Newspaper clippings are not included.
+
+Optional variables (same page, Variables tab): `FTP_PROTOCOL` (`ftps` by default, or `ftp`, `ftps-legacy`), `FTP_PORT` (21) and `FTP_SERVER_DIR` (the folder on the server, ending in `/`; default `./`). The upload only sends files that changed since the last run, tracked in `.ftp-deploy-sync-state.json` on the server.
+
+The deployed page uses the config's `livingPeople` setting: unless the page is behind a password, set it to `"initials"` or `"hidden"` (see [Privacy](#privacy)).
+
 `.htaccess`, `robots.txt` and a `noindex` meta tag keep search engines out, but **anyone with the link can open the page**. To require a password on Apache, follow the steps in `public/.htaccess` (`htpasswd`, then uncomment four lines). Keep the `.htpasswd` file outside the web folder.
 
 ## Privacy
