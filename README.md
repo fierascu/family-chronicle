@@ -29,6 +29,7 @@ Turns a GEDCOM family tree export into a single HTML page with a zoomable timeli
 - A list of data problems found in the tree (possible duplicates, contradictions, missing dates, places without a map location)
 - The page in English, Romanian, French or Portuguese, or "Original": picked in the header, remembered, or set with `?lang=ro`; otherwise the browser's language. The page's own words and the phrases built from the tree ("Born:", "Married (estimated):", estimated-year notes) are translated in the code; text written by hand (notes, history events, family-name meanings) is translated from a file next to the tree (see [Translations](#translations)). "Original" shows every text as written
 - A link can open a record: `?name=Popescu` (or `?search=Popescu`) opens that family name's card, or else the first person whose name matches, as the search box does; case and accents are ignored. It combines with the language: `?lang=ro&name=Popescu`.
+- Names spelled a little differently still match (see [Similar spellings](#similar-spellings)): `Popesko` opens Popescu, `Ioan Popesco` finds Ion Popescu, and the events list falls back to similar spellings when nothing matches exactly.
 
 ## Project layout
 
@@ -41,6 +42,7 @@ src/                the app in TypeScript (no family data)
   card.tsx            record card (Preact) (person, event, place)
   events.tsx          events list (Preact): sort, text filter, source and link columns
   sources.ts          where an event comes from (linked site or the tree file)
+  find.ts             matching a typed or linked name to a record, with similar spellings
   i18n.ts             the page's words in English, Romanian, French and Portuguese
   data.ts             loads the parsed tree, family links
   types.ts            shape of the parsed data
@@ -214,6 +216,24 @@ The portal returns catalogue entries (school files, petitions, veterans' files, 
 
 The results go to `build/archives.md`: possible matches by person, then all other register lines in date order (relatives, often the same village), then other catalogue entries. Nothing is added to the tree or the config automatically: check a match on the portal, then add it as a `noteEvents` entry with the `cota/?cid=` address as its `link`.
 
+## Similar spellings
+
+Names drift between registers, languages and typing: Fierăscu / Fieraşcu / Fierascu, Câmpeanu / Cîmpeanu, Kostache / Costache, Ioan / Ion, Popesco / Popescu. `src/find.ts` matches them locally, with no library or service:
+
+1. `spell()` writes each word one way: accents off, â = î, `k`/`q` → `c`, `gh` → `g`, `ch` → `c`, `sch`/`sh` → `s`, `tz`/`cz`/`ts` → `t`, `ph` → `f`, `w` → `v`, `y` → `i`, `ou` → `u`, double letters single.
+2. Two words are close when they then differ by at most 1 letter (up to 4 letters long), 2 (up to 10) or 3 (longer), counting an added, missing, changed or swapped letter as one; the first letter must be the same, and words under 3 letters only match exactly.
+
+Where it is used:
+
+| Where | What |
+|---|---|
+| Search box and `?name=` | exact matches first (family name, then person); otherwise the closest family name (one word) or person, every typed word close to its own word of the name |
+| Events list filter | when no event matches exactly, events where every typed word is close to one of the event's words; the count then says "similar spellings" |
+| `build/checks.txt` | people of the same sex, born within 3 years, not siblings, whose names are close but not the same: "possibly one person entered twice" |
+| `npm run archives` | surnames, given names and the father's or spouse's name match the register lines when close |
+
+It can also match two different names (Marian / Maria, Ionescu / Ionascu), which is why exact matches always come first and the checks are only suggestions.
+
 ## Tests
 
 ```sh
@@ -224,6 +244,7 @@ Uses Node's built-in test runner on the TypeScript files directly, so it needs N
 
 - `tests/privacy.test.ts`: what reaches the page about living people in each `livingPeople` mode (names, notes, places, dates, marriages, branches, family names, `noteEvents`, the data checks)
 - `tests/parse-gedcom.test.ts`: GEDCOM lines, dates, HTML notes, coordinates and place rules, and `scrub` (emails, phone and ID numbers removed; dates and years kept)
+- `tests/fuzzy.test.ts`: similar spellings: which names count as close and which don't, the search and filter fallbacks, and the duplicate check
 - `tests/translations.test.ts`: only translations of texts on the page are published, scrubbed
 - `tests/build-privacy.test.ts`: builds the demo and checks that no living person's name, notes or stories are in the output. The living people are worked out from `demo/dummy.ged` itself, so the test still holds when the demo changes
 

@@ -11,6 +11,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { nameDistance, spell } from '../src/find.ts';
 import type { ChronicleData, DateValue, Settings, SourceInfo, SurnameInfo } from '../src/types';
 
 // ---- config file shape (every key optional) ----
@@ -440,6 +441,24 @@ export function parseGedcom(gedPath: string): ParseResult {
         checks.push(`${ys.length} people named ${nm}` + (mar ? ` (married ${mar})` : '')
           + ' with different parents — possibly one person entered more than once.');
       }
+    }
+    // possible duplicates spelled differently (Ioan / Ion, Popescu / Popesco): same sex, both birth years known and
+    // within 3 years. Only people whose surnames start alike (after spell()) are compared, so it stays quick.
+    const bySound = new Map<string, Indi[]>();
+    for (const p of all) {
+      if ((name !== realName && hidden(p)) || !p.given || p.given === '?' || !year(p)) continue;
+      const k = spell(p.surname || '').slice(0, 2);
+      if (!bySound.has(k)) bySound.set(k, []);
+      bySound.get(k)!.push(p);
+    }
+    for (const ps of bySound.values()) for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) {
+      const a = ps[i], b = ps[j];
+      if (realName(a) === realName(b) || (a.sex && b.sex && a.sex !== b.sex)) continue;
+      if (Math.abs(year(a)! - year(b)!) > 3) continue;
+      const shared = a.famc.some(f => b.famc.includes(f)); // siblings born close together with near names are real
+      if (shared || nameDistance(realName(a), realName(b)) === undefined) continue;
+      checks.push(`${name(a)} (born ${year(a)}) and ${name(b)} (born ${year(b)}) have names spelled almost the same`
+        + ' — possibly one person entered twice.');
     }
     for (const f of fams.values()) {
       if (f.div && f.spouseDeath) checks.push(`${coupleNames(f, name)}: the family has both "Death of Spouse" and "Divorced" — one is probably wrong.`);

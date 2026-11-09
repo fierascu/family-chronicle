@@ -5,7 +5,7 @@ import { evTitle, L, lang, locale } from './i18n';
 import { sourceOf } from './sources';
 import type { EventSource } from './sources';
 import { state } from './state';
-import { fold } from './find';
+import { fold, fuzzyIncludes } from './find';
 import { fmt, label } from './util';
 import type { ChronicleEvent } from './types';
 
@@ -73,10 +73,13 @@ function List({ open, tick }: { open: (id: string) => void; tick: number }) {
     if (!x !== !y) return x ? -1 : 1; // events without a source last, whichever the direction
     return (x.localeCompare(y, locale()) || key(a) - key(b)) * (desc ? -1 : 1);
   };
-  const shown = EV.filter(e => state.cats.has(e.cat)
-    && (!state.branch || e.kind === 'history' || P[e.person]?.branch === state.branch)
-    && words.every(w => HAY.get(e.id)!.includes(w)))
-    .sort(sort === 'source' ? bySource : (a, b) => (key(a) - key(b)) * (desc ? -1 : 1));
+  const inFilters = EV.filter(e => state.cats.has(e.cat)
+    && (!state.branch || e.kind === 'history' || P[e.person]?.branch === state.branch));
+  let shown = inFilters.filter(e => words.every(w => HAY.get(e.id)!.includes(w)));
+  // nothing spelled exactly like that: show close spellings instead (Popesco, Fierascu, Ioan for Ion)
+  const fuzzy = !shown.length && words.length > 0;
+  if (fuzzy) shown = inFilters.filter(e => fuzzyIncludes(words, HAY.get(e.id)!));
+  shown.sort(sort === 'source' ? bySource : (a, b) => (key(a) - key(b)) * (desc ? -1 : 1));
 
   return (
     <>
@@ -85,7 +88,7 @@ function List({ open, tick }: { open: (id: string) => void; tick: number }) {
         <div class="evtools">
           <input type="search" value={q} placeholder={L.filterPh} aria-label={L.filterAria}
             onInput={ev => setQ((ev.target as HTMLInputElement).value)} />
-          <span class="hint meta" aria-live="polite">{L.count(shown.length, EV.length)}</span>
+          <span class="hint meta" aria-live="polite">{L.count(shown.length, EV.length)}{fuzzy && shown.length > 0 && ` · ${L.closeSpellings}`}</span>
         </div>
       </div>
       <div class="evtable-wrap">

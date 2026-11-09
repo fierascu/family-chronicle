@@ -10,6 +10,7 @@
 // Writes build/archives.md (matches by person, then everything else by surname) and build/archives.json.
 // Only names (given + surname, surname + village) are sent to the portal.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { close } from '../src/find.ts';
 
 const BASE = 'https://descopera.arhivelenationale.ro';
 const args = process.argv.slice(2);
@@ -166,12 +167,14 @@ interface Match { p: Person; h: Hit; rec?: Rec; score: number; why: string[] }
 function matchRec(p: Person, h: Hit, r: Rec): Match | null {
   const w = words(r.name);
   const sn = surnamesOf(p).flatMap(words);
-  if (!sn.some(s => w.includes(s))) return null;
+  // spellings in the registers drift (Fierăscu / Fieraşcu / Fierascu, Ioan / Ion), so names match when close
+  const isSn = (x: string) => sn.some(s => close(s, x));
+  if (!w.some(isSn)) return null;
   const why: string[] = [];
   let score = 0;
   // the person as the subject: first name first, event year fits
-  const first = w.find(x => !sn.includes(x));
-  if (first === p.given[0]) {
+  const first = w.find(x => !isSn(x));
+  if (first && p.given[0] && close(first, p.given[0])) {
     const y = r.kind === 'N' ? p.birth : r.kind === 'D' ? p.death : undefined;
     const br = birthRange(p);
     if (r.kind === 'N' && !y && br && (r.year < br[0] - 2 || r.year > br[1] + 2)) return null;
@@ -183,17 +186,18 @@ function matchRec(p: Person, h: Hit, r: Rec): Match | null {
     score += 2; why.push(y ? `${r.kind === 'N' ? 'birth' : 'death'} year matches` : 'name matches');
     if (y) score += 3;
     const dad = parentOf(p, 'husb');
-    const rest = w.filter(x => x !== first && !sn.includes(x));
-    if (dad && rest.includes(dad.given[0])) { score += 4; why.push(`father ${dad.given[0]} matches`); }
+    const rest = w.filter(x => x !== first && !isSn(x));
+    const named = (g?: string) => !!g && rest.some(x => close(x, g));
+    if (dad && named(dad.given[0])) { score += 4; why.push(`father ${dad.given[0]} matches`); }
     else if (dad && r.kind !== 'C') { score -= 2; why.push(`father in tree is ${dad.given[0]}`); }
-    if (r.kind === 'C' && spouses(p).some(s => rest.includes(s.given[0]))) { score += 4; why.push('spouse matches'); }
+    if (r.kind === 'C' && spouses(p).some(s => named(s.given[0]))) { score += 4; why.push('spouse matches'); }
   }
   if (p.places.some(pl => fold(r.place).includes(fold(pl)))) { score += 1; why.push('place'); }
   return score >= 2 ? { p, h, rec: r, score, why } : null;
 }
 function matchTitle(p: Person, h: Hit): Match | null {
   const w = words(h.title);
-  if (!surnamesOf(p).flatMap(words).some(s => w.includes(s)) || !w.includes(p.given[0])) return null;
+  if (!surnamesOf(p).flatMap(words).some(s => w.some(x => close(s, x))) || !p.given[0] || !w.some(x => close(x, p.given[0]))) return null;
   const ys = [...h.dates.matchAll(/\b(\d{4})\b/g)].map(m => +m[1]);
   if (ys.length && p.birth && Math.max(...ys) < p.birth) return null;
   if (ys.length && p.death && Math.min(...ys) > p.death + 1) return null;

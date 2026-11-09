@@ -19,7 +19,7 @@ import { BRANCHES, CHECKS, EV, NOW, SET, SURNAMES, people } from './data';
 import { createCard } from './card';
 import { CLIPS, openClip, resetClips } from './clips';
 import { createEventList } from './events';
-import { matchPerson, matchSurname, nameParam } from './find';
+import { closestPerson, closestSurname, matchPerson, matchSurname, nameParam } from './find';
 import { createGlobe } from './globe';
 import { L, lang, LANG_NAME, LANGS, setLang } from './i18n';
 import type { Lang } from './i18n';
@@ -114,9 +114,9 @@ chips.forEach(b => b.onclick = () => {
   refresh();
 });
 branchSel.onchange = () => { state.branch = branchSel.value; syncBranchSw(); refresh(); };
-/** a person by name (exact, else the first containing it), accents and case ignored; false when none matches */
+/** a person by name (exact, else the first containing it, else the closest spelling), accents and case ignored; false when none matches */
 function findPerson(text: string) {
-  const p = matchPerson(people, label, text);
+  const p = matchPerson(people, label, text) ?? closestPerson(people, label, text);
   if (!p) return false;
   if (state.branch && p.branch !== state.branch) {
     state.branch = ''; branchSel.value = ''; syncBranchSw(); timeline.rebuild(); events.rebuild();
@@ -128,13 +128,17 @@ function findPerson(text: string) {
 }
 $<HTMLInputElement>('q').addEventListener('change', ev => { findPerson((ev.target as HTMLInputElement).value); });
 
-/** ?name=Popescu (or ?search=): a family name opens its card, else the matching person, as in the search box */
+/** ?name=Popescu (or ?search=): a family name opens its card, else the matching person, as in the search box;
+ *  exact spellings first (family name, then person), then close ones (Popesco, Ion Popscu) */
 function openFromAddress() {
   const v = nameParam(location.search);
   if (!v) return false;
-  const s = matchSurname(SURNAMES, v);
-  if (s) { card.showSurname(s.name); reveal(); return true; }
+  const exact = matchSurname(SURNAMES, v);
+  if (exact) { card.showSurname(exact.name); reveal(); return true; }
   $<HTMLInputElement>('q').value = v;
+  if (matchPerson(people, label, v)) return findPerson(v);
+  const s = closestSurname(SURNAMES, v);
+  if (s) { card.showSurname(s.name); reveal(); return true; }
   return findPerson(v);
 }
 
